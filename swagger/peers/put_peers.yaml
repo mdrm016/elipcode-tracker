@@ -1,0 +1,65 @@
+Actualiza Peers
+---
+tags:
+- "peers"
+responses:
+  200:
+    description: Se actualiza Peers
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: id
+    in: path
+    required: true
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/PeersPut"
+definitions:
+    PeersPut:
+        type: "object"
+        properties:
+            id:
+                type: "int"
+            peer_id:
+                type: "string"
+            torrent_id:
+                type: "int"
+            user_id:
+                type: "int"
+            ip:
+                type: "string"
+            port:
+                type: "int"
+            active:
+                type: "boolean"
+            uploaded:
+                type: "int"
+            downloaded:
+                type: "int"
+            uploaded_total:
+                type: "int"
+            downloaded_total:
+                type: "int"
+            seeding:
+                type: "boolean"
+        example:
+            id: 12
+            peer_id: Lorem ipsum dolor sit am
+            torrent_id: 49
+            user_id: 6
+            ip: Lorem ipsum dolor sit am
+            port: 23
+            active: false
+            uploaded: 9
+            downloaded: 23
+            uploaded_total: 10
+            downloaded_total: 43
+            seeding: false

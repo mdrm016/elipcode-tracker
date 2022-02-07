@@ -1,0 +1,38 @@
+Actualiza Principalmembers
+---
+tags:
+- "principalmembers"
+responses:
+  200:
+    description: Se actualiza Principalmembers
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: id
+    in: path
+    required: true
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/PrincipalmembersPut"
+definitions:
+    PrincipalmembersPut:
+        type: "object"
+        properties:
+            principalmembership_id:
+                type: "int"
+            principal_id:
+                type: "int"
+            user_id:
+                type: "int"
+        example:
+            principalmembership_id: 32
+            principal_id: 27
+            user_id: 50

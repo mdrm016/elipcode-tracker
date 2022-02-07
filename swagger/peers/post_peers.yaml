@@ -1,0 +1,62 @@
+Guarda un Peers
+---
+tags:
+- "peers"
+responses:
+  200:
+    description: Se guarda Peers
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/PeersPost"
+definitions:
+    PeersPost:
+        type: "object"
+        properties:
+            id:
+              type: "int"
+            peer_id:
+              type: "string"
+            torrent_id:
+              type: "int"
+            user_id:
+              type: "int"
+            ip:
+              type: "string"
+            port:
+              type: "int"
+            active:
+              type: "boolean"
+            uploaded:
+              type: "int"
+            downloaded:
+              type: "int"
+            uploaded_total:
+              type: "int"
+            downloaded_total:
+              type: "int"
+            seeding:
+              type: "boolean"
+        example:
+            id: 31
+            peer_id: Lorem ipsum dolor sit am
+            torrent_id: 28
+            user_id: 17
+            ip: Lorem ipsum dolor sit am
+            port: 26
+            active: false
+            uploaded: 1
+            downloaded: 24
+            uploaded_total: 29
+            downloaded_total: 2
+            seeding: false

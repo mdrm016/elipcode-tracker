@@ -1,0 +1,41 @@
+Lista de Friendships
+---
+tags:
+  - "search"
+responses:
+  200:
+    description: Se lista Friendships filtrados
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - in: query
+    name: page
+    description: Current items page
+    default: 1
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/FriendshipsSearch"
+definitions:
+    FriendshipsSearch:
+        type: "object"
+        properties:
+            friendship_id:
+                type: "int"
+            userone_id:
+                type: "int"
+            usertwo_id:
+                type: "int"
+            accepted:
+                type: "boolean"
+        example:
+            friendship_id: 27
+            userone_id: 1
+            usertwo_id: 17

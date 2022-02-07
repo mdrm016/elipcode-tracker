@@ -1,0 +1,35 @@
+Actualiza Principals
+---
+tags:
+- "principals"
+responses:
+  200:
+    description: Se actualiza Principals
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: id
+    in: path
+    required: true
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/PrincipalsPut"
+definitions:
+    PrincipalsPut:
+        type: "object"
+        properties:
+            principal_id:
+                type: "int"
+            principal_name:
+                type: "string"
+        example:
+            principal_id: 8
+            principal_name: Lorem ipsum dolor sit am

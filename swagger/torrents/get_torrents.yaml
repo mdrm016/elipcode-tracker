@@ -1,0 +1,20 @@
+Obtiene un Torrents
+---
+tags:
+- "torrents"
+responses:
+  200:
+    description: Se obtiene un Torrents
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: torrent_id
+    in: path
+    required: true

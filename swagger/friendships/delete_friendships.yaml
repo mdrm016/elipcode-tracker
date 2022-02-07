@@ -1,0 +1,20 @@
+Borra un Friendships
+---
+tags:
+- "friendships"
+responses:
+  200:
+    description: Se borra Friendships
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: friendship_id
+    in: path
+    required: true

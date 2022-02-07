@@ -1,0 +1,31 @@
+Crea un nuevo usuario del tracker
+---
+tags:
+- "jwt"
+responses:
+  200:
+    description: Se crea el usuario correctamente
+  401:
+    description: Las datos proveídos son inválidos
+  400:
+    description: No se puede parsear correctamente el json
+parameters:
+  - in: "body"
+    name: "body"
+    description: "Datos del nuevo usuario"
+    required: true
+    schema:
+      $ref: "#/definitions/RegisterData"
+definitions:
+  RegisterData:
+    type: "object"
+    properties:
+      username:
+        type: "string"
+        example: "test"
+      password:
+        type: "string"
+        example: "test"
+      email:
+        type: "string"
+        example: "test"

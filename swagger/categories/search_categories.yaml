@@ -1,0 +1,39 @@
+Lista de Categories
+---
+tags:
+  - "search"
+responses:
+  200:
+    description: Se lista Categories filtrados
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - in: query
+    name: page
+    description: Current items page
+    default: 1
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/CategoriesSearch"
+definitions:
+    CategoriesSearch:
+        type: "object"
+        properties:
+            id:
+                type: "int"
+            image:
+                type: "string"
+            name:
+                type: "string"
+        example:
+            id: 48
+            image: Lorem ipsum dolor sit am
+            name: Lorem ipsum dolor sit am

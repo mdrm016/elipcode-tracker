@@ -1,0 +1,47 @@
+Guarda un Users
+---
+tags:
+- "users"
+responses:
+  200:
+    description: Se guarda Users
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/UsersPost"
+definitions:
+    UsersPost:
+        type: "object"
+        properties:
+            user_id:
+              type: "int"
+            username:
+              type: "string"
+            password:
+              type: "string"
+            passkey:
+              type: "string"
+            uploaded:
+              type: "int"
+            downloaded:
+              type: "int"
+            email:
+              type: "string"
+        example:
+            user_id: 45
+            username: Lorem ipsum dolor sit am
+            password: Lorem ipsum dolor sit am
+            passkey: Lorem ipsum dolor sit am
+            uploaded: 2
+            downloaded: 24
+            email: fulanito123@gmail.com

@@ -1,0 +1,35 @@
+Guarda un Principalmembers
+---
+tags:
+- "principalmembers"
+responses:
+  200:
+    description: Se guarda Principalmembers
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/PrincipalmembersPost"
+definitions:
+    PrincipalmembersPost:
+        type: "object"
+        properties:
+            principalmembership_id:
+              type: "int"
+            principal_id:
+              type: "int"
+            user_id:
+              type: "int"
+        example:
+            principalmembership_id: 7
+            principal_id: 39
+            user_id: 38

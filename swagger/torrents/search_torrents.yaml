@@ -1,0 +1,65 @@
+Lista de Torrents
+---
+tags:
+  - "search"
+responses:
+  200:
+    description: Se lista Torrents filtrados
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - in: query
+    name: page
+    description: Current items page
+    default: 1
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/TorrentsSearch"
+definitions:
+    TorrentsSearch:
+        type: "object"
+        properties:
+            torrent_id:
+                type: "int"
+            info_hash:
+                type: "string"
+            name:
+                type: "string"
+            desc:
+                type: "string"
+            info:
+                type: "byte"
+            torrent_file:
+                type: "string"
+            uploaded_time:
+                type: "datetime"
+            download_count:
+                type: "int"
+            seeders:
+                type: "int"
+            leechers:
+                type: "int"
+            last_checked:
+                type: "datetime"
+            category_id:
+                type: "int"
+        example:
+            torrent_id: 23
+            info_hash: Lorem ipsum dolor sit am
+            name: Lorem ipsum dolor sit am
+            desc: Lorem ipsum dolor sit am
+            torrent_file: Lorem ipsum dolor sit am
+            uploaded_time: '2019-01-01T00:00:00'
+            download_count: 39
+            seeders: 40
+            leechers: 9
+            last_checked: '2019-01-01T00:00:00'
+            category_id: 17
