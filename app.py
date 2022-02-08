@@ -3,7 +3,7 @@ import datetime
 from models.principals import PrincipalsModel
 from models.users import UsersModel
 from resources.announce import Announce, AnnounceMetadata
-from resources.torrents import Torrents, TorrentsList, TorrentsSearch
+from resources.torrents import Torrents, TorrentsList, TorrentsSearch, TorrentFiles
 from resources.friendships import Friendships, FriendshipsList, FriendshipsSearch
 from resources.peers import Peers, PeersList, PeersSearch
 from resources.principalmembers import Principalmembers, PrincipalmembersList, PrincipalmembersSearch
@@ -269,6 +269,7 @@ api.add_resource(FriendshipsSearch, f'{PREFIX}/search/friendships')
 api.add_resource(Torrents, f'{PREFIX}/torrents/<torrent_id>')
 api.add_resource(TorrentsList, f'{PREFIX}/torrents')
 api.add_resource(TorrentsSearch, f'{PREFIX}/search/torrents')
+api.add_resource(TorrentFiles, f'{PREFIX}/torrents/get_torrent_file/<torrent_id>')
 
 api.add_resource(Announce, '/<passkey>/announce')
 api.add_resource(AnnounceMetadata, f'{PREFIX}/get_announce')

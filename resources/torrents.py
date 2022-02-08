@@ -7,7 +7,7 @@ from datetime import datetime
 
 import bencodepy
 from flasgger import swag_from
-from flask import request, current_app
+from flask import request, current_app, send_file
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource, reqparse
 from pytz import unicode
@@ -158,3 +158,17 @@ class TorrentsSearch(Resource):
             query = restrict(query, filters, 'leechers', lambda x: TorrentsModel.leechers == x)
             query = restrict(query, filters, 'category_id', lambda x: TorrentsModel.category_id == x)
         return paginated_results(query)
+
+
+class TorrentFiles(Resource):
+
+    parser = reqparse.RequestParser()
+    parser.add_argument('torrent_id', type=int)
+
+    def get(self, torrent_id):
+        torrent = TorrentsModel.find_by_torrent_id(torrent_id)
+
+        if not torrent:
+            return {"error": "Torrent not found"}, 404
+
+        return send_file(torrent.torrent_file, as_attachment=True)
