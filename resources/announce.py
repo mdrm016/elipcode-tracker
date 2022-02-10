@@ -21,10 +21,6 @@ from utils import check
 log = logging.getLogger(__name__)
 
 
-def failure(reason):
-    return Response(bencode({'failure reason': reason}))
-
-
 class AnnounceMetadata(Resource):
 
     @jwt_required
@@ -48,20 +44,24 @@ class Announce(Resource):
         # if request.method == "POST":
         #     return failure("Invalid request type")
         # passkey = request.matchdict['passkey']
-        user = DBSession.query(UsersModel).filter_by(passkey=passkey).first()
+        user = UsersModel.query.filter_by(passkey=passkey).first()
         if not user:
-            return failure('Invalid passkey')
+            return {'error': 'Invalid passkey'}, 400
+            # return failure('Invalid passkey')
         toHex = lambda x: "".join([hex(ord(c))[2:].zfill(2) for c in x])
         parse_url = urlparse(request.url)
-        query_dict = dict(parse_qsl(parse_url.query))
+        query_dict = dict(parse_qsl(parse_url.query, encoding='latin_1'))
+
+        # query_dict = dict(parse_qsl(request.headers.environ['QUERY_STRING']))
 
         infohash = toHex(query_dict['info_hash'])
         peer_id = toHex(query_dict['peer_id'])
-        torrent = DBSession.query(TorrentsModel).filter_by(info_hash=infohash).first()
+        torrent = TorrentsModel.query.filter_by(info_hash=infohash).first()
 
         if not torrent:
-            return failure("Torrent not found")
-        peer = DBSession.query(PeersModel).filter_by(peer_id=peer_id).first()
+            return {'error': 'Torrent not found'}, 404
+            # return failure("Torrent not found")
+        peer = PeersModel.query.filter_by(peer_id=peer_id).first()
         left = int(query_dict['left'])
         if not peer:
             peer = PeersModel()
@@ -88,10 +88,12 @@ class Announce(Resource):
 
         if left == 0:
             peer.seeding = True
-            DBSession.add(torrent)
-            DBSession.commit()
+            torrent.save_to_db()
+            # DBSession.add(torrent)
+            # DBSession.commit()
         else:
             peer.seeding = False
+
         if 'event' in query_dict:
             event = query_dict['event']
             if event == 'started':
@@ -141,21 +143,23 @@ class Announce(Resource):
             torrent.seeders = seeders
             torrent.leechers = leechers
             torrent.last_checked = datetime.datetime.now()
-            DBSession.add(torrent)
+            # DBSession.add(torrent)
+            torrent.save_tmp()
 
-        DBSession.add(peer)
-        DBSession.commit()
+        # DBSession.add(peer)
+        # DBSession.commit()
+        peer.save_to_db()
         if compactmode:
             peers = ""
             if peer.seeding:
                 log.error("peer is seeding")
-                peer_objs = DBSession.query(PeersModel).filter_by(torrent=torrent).filter_by(active=True).filter_by(
+                peer_objs = PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
                     seeding=False).order_by(func.random()).limit(50).all()
             else:
-                peer_objs = DBSession.query(PeersModel).filter_by(torrent=torrent).filter_by(active=True).filter_by(
-                    seeding=True).order_by(func.random()).limit(25).all() + DBSession.query(PeersModel).filter_by(
-                    torrent=torrent).filter_by(active=True).filter_by(seeding=False).order_by(func.random()).limit(
-                    25).all()
+                peer_objs = PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
+                    seeding=True).order_by(func.random()).limit(25).all() + \
+                            PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
+                                seeding=False).order_by(func.random()).limit(25).all()
                 log.error(peer_objs)
             for i in peer_objs:
                 if i == peer:
@@ -173,10 +177,10 @@ class Announce(Resource):
             log.error("NOT COMPACT MODE")
             peers = list()
             if peer.seeding:
-                peer_objs = DBSession.query(PeersModel).filter_by(active=True).filter_by(torrent=torrent).filter_by(
+                peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
                     seeding=False).order_by(func.random()).limit(50).all()
             else:
-                peer_objs = DBSession.query(PeersModel).filter_by(active=True).filter_by(torrent=torrent).filter_by(
+                peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
                     seeding=True).order_by(func.random()).limit(25).all() + DBSession.query(PeersModel).filter_by(
                     active=True).filter_by(torrent=torrent).filter_by(seeding=False).order_by(func.random()).limit(
                     25).all()

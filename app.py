@@ -276,7 +276,7 @@ api.add_resource(AnnounceMetadata, f'{PREFIX}/get_announce')
 
 if __name__ == '__main__':
     db.init_app(app)
-    app.run(host=os.environ.get("FLASK_HOST", default="localhost"), port=os.environ.get("FLASK_PORT", default=5000))
+    app.run(host=os.environ.get("FLASK_HOST", default="0.0.0.0"), port=os.environ.get("FLASK_PORT", default=5000))
 # this lines are required for debugging with pycharm (although you can delete them if you want)
 else:
     db.init_app(app)

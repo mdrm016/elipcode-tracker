@@ -27,7 +27,9 @@ class PeersModel(db.Model):
     torrent = db.relationship(TorrentsModel, backref='peers')
     user = db.relationship(UsersModel, backref='activity')
 
-    def __init__(self, id, peer_id, torrent_id, user_id, ip, port, active, uploaded, downloaded, uploaded_total, downloaded_total, seeding):
+    def __init__(self, id=None, peer_id=None, torrent_id=None, user_id=None, ip=None, port=None,
+                 active=None, uploaded=None, downloaded=None, uploaded_total=None,
+                 downloaded_total=None, seeding=None):
         self.id = id
         self.peer_id = peer_id
         self.torrent_id = torrent_id
