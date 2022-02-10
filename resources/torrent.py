@@ -14,7 +14,7 @@ from pytz import unicode
 from werkzeug.utils import secure_filename
 
 from file_utils import get_filename_hash, get_file_directory
-from models.torrents import TorrentsModel
+from models.torrent import TorrentModel
 from utils import restrict, check, paginated_results
 
 log = logging.getLogger(__name__)
@@ -23,49 +23,50 @@ log = logging.getLogger(__name__)
 class Torrents(Resource):
 
     parser = reqparse.RequestParser()
-    parser.add_argument('torrent_id', type=int)
+    parser.add_argument('id', type=int)
     parser.add_argument('info_hash', type=str)
     parser.add_argument('name', type=str)
     parser.add_argument('description', type=str)
     parser.add_argument('info', type=lambda x: base64.decodebytes(x.encode()))
-    parser.add_argument('torrent_file', type=str)
+    parser.add_argument('torrent_file_path', type=str)
     parser.add_argument('uploaded_time', type=lambda x: datetime.strptime(x, '%Y-%m-%dT%H:%M:%S'))
     parser.add_argument('download_count', type=int)
     parser.add_argument('seeders', type=int)
     parser.add_argument('leechers', type=int)
     parser.add_argument('last_checked', type=lambda x: datetime.strptime(x, '%Y-%m-%dT%H:%M:%S'))
     parser.add_argument('category_id', type=int)
+    parser.add_argument('user_create', type=str)
 
     @jwt_required
     @check('torrents_get')
     @swag_from('../swagger/torrents/get_torrents.yaml')
     def get(self, id):
-        torrents = TorrentsModel.find_by_id(id)
-        if torrents:
-            return torrents.json()
-        return {'message': 'No se encuentra Torrents'}, 404
+        torrent = TorrentModel.find_by_torrent_id(id)
+        if torrent:
+            return torrent.json()
+        return {'message': 'No se encuentra Torrent'}, 404
 
     @jwt_required
     @check('torrents_update')
     @swag_from('../swagger/torrents/put_torrents.yaml')
     def put(self, id):
-        torrents = TorrentsModel.find_by_id(id)
-        if torrents:
+        torrent = TorrentModel.find_by_torrent_id(id)
+        if torrent:
             newdata = Torrents.parser.parse_args()
-            torrents.from_reqparse(newdata)
-            torrents.save_to_db()
-            return torrents.json()
-        return {'message': 'No se encuentra Torrents'}, 404
+            torrent.from_reqparse(newdata)
+            torrent.save_to_db()
+            return torrent.json()
+        return {'message': 'No se encuentra Torrent'}, 404
 
     @jwt_required
     @check('torrents_delete')
     @swag_from('../swagger/torrents/delete_torrents.yaml')
     def delete(self, id):
-        torrents = TorrentsModel.find_by_id(id)
-        if torrents:
-            torrents.delete_from_db()
+        torrent = TorrentModel.find_by_torrent_id(id)
+        if torrent:
+            torrent.delete_from_db()
 
-        return {'message': 'Se ha borrado Torrents'}
+        return {'message': 'Se ha borrado Torrent'}
 
 
 def save_torrent(torrent_file):
@@ -94,7 +95,7 @@ class TorrentsList(Resource):
     @check('torrents_list')
     @swag_from('../swagger/torrents/list_torrents.yaml')
     def get(self):
-        query = TorrentsModel.query
+        query = TorrentModel.query
         return paginated_results(query)
 
     @jwt_required
@@ -104,8 +105,8 @@ class TorrentsList(Resource):
         data = Torrents.parser.parse_args()
 
         torrent_id = data.get('torrent_id')
-        if torrent_id is not None and TorrentsModel.find_by_torrent_id(torrent_id):
-            return {'message': "Ya existe un torrents con id '{}'.".format(torrent_id)}, 400
+        if torrent_id is not None and TorrentModel.find_by_torrent_id(torrent_id):
+            return {'message': "Ya existe un torrent con id '{}'.".format(torrent_id)}, 400
 
         # Check if the torrent file was send via post request how file part
         if 'torrent_file' not in request.files:
@@ -120,7 +121,7 @@ class TorrentsList(Resource):
         info_hash = hashlib.sha1(info).hexdigest()
         log.info('INFOHASH: %s', info_hash)
 
-        torrent = TorrentsModel(**data)
+        torrent = TorrentModel(**data)
         torrent.info_hash = info_hash
         torrent.torrent_file = torrent_path
         torrent.name = unicode(torrent.name)
@@ -145,18 +146,20 @@ class TorrentsSearch(Resource):
     @check('torrents_search')
     @swag_from('../swagger/torrents/search_torrents.yaml')
     def post(self):
-        query = TorrentsModel.query
+        query = TorrentModel.query
         if request.json:
             filters = request.json
-            query = restrict(query, filters, 'torrent_id', lambda x: TorrentsModel.torrent_id == x)
-            query = restrict(query, filters, 'info_hash', lambda x: TorrentsModel.info_hash.contains(x))
-            query = restrict(query, filters, 'name', lambda x: TorrentsModel.name.contains(x))
-            query = restrict(query, filters, 'desc', lambda x: TorrentsModel.desc.contains(x))
-            query = restrict(query, filters, 'torrent_file', lambda x: TorrentsModel.torrent_file.contains(x))
-            query = restrict(query, filters, 'download_count', lambda x: TorrentsModel.download_count == x)
-            query = restrict(query, filters, 'seeders', lambda x: TorrentsModel.seeders == x)
-            query = restrict(query, filters, 'leechers', lambda x: TorrentsModel.leechers == x)
-            query = restrict(query, filters, 'category_id', lambda x: TorrentsModel.category_id == x)
+            query = restrict(query, filters, 'id', lambda x: TorrentModel.id == x)
+            query = restrict(query, filters, 'info_hash', lambda x: TorrentModel.info_hash.contains(x))
+            query = restrict(query, filters, 'name', lambda x: TorrentModel.name.contains(x))
+            query = restrict(query, filters, 'description', lambda x: TorrentModel.description.contains(x))
+            query = restrict(query, filters, 'torrent_file_path', lambda x: TorrentModel.torrent_file_path.contains(x))
+            query = restrict(query, filters, 'download_count', lambda x: TorrentModel.download_count == x)
+            query = restrict(query, filters, 'seeders', lambda x: TorrentModel.seeders == x)
+            query = restrict(query, filters, 'leechers', lambda x: TorrentModel.leechers == x)
+            query = restrict(query, filters, 'category_id', lambda x: TorrentModel.category_id == x)
+            query = restrict(query, filters, 'user_create', lambda x: TorrentModel.user_create == x)
+
         return paginated_results(query)
 
 
@@ -166,7 +169,7 @@ class TorrentFiles(Resource):
     parser.add_argument('torrent_id', type=int)
 
     def get(self, torrent_id):
-        torrent = TorrentsModel.find_by_torrent_id(torrent_id)
+        torrent = TorrentModel.find_by_torrent_id(torrent_id)
 
         if not torrent:
             return {"error": "Torrent not found"}, 404

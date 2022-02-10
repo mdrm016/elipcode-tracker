@@ -1,17 +1,17 @@
 import datetime
 
-from models.principals import PrincipalsModel
-from models.users import UsersModel
+from models.rol import RolModel
+from models.user import UserModel
 from resources.announce import Announce, AnnounceMetadata
-from resources.torrents import Torrents, TorrentsList, TorrentsSearch, TorrentFiles
+from resources.torrent import Torrents, TorrentsList, TorrentsSearch, TorrentFiles
 from resources.friendships import Friendships, FriendshipsList, FriendshipsSearch
 from resources.peers import Peers, PeersList, PeersSearch
-from resources.principalmembers import Principalmembers, PrincipalmembersList, PrincipalmembersSearch
-from resources.users import Users, UsersList, UsersSearch
-from resources.principals import Principals, PrincipalsList, PrincipalsSearch
-from resources.categories import Categories, CategoriesList, CategoriesSearch
+from resources.rol_user import Principalmembers, PrincipalmembersList, PrincipalmembersSearch
+from resources.user import Users, UsersList, UsersSearch
+from resources.rol import Principals, PrincipalsList, PrincipalsSearch
+from resources.category import Categories, CategoriesList, CategoriesSearch
 import os
-from db import db, DBSession
+from db import db
 from flasgger import Swagger, swag_from
 from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
@@ -189,7 +189,7 @@ def login():
     if not username or not password:
         return jsonify({"error": "Bad username or password. Please, enter the necesary fields"}), 400
 
-    user = UsersModel.get_by_username_and_password(username, password)
+    user = UserModel.get_by_username_and_password(username, password)
 
     if not user:
         return jsonify({"error": "User not exist or password incorrect, please, check your credentials"}), 401
@@ -212,9 +212,14 @@ def register():
     if not username or not password or not email:
         return jsonify({"error": "Bad username, password or email. Please, complete the necesary fields"}), 400
 
-    user = UsersModel(username=username, password=password, email=email)
-    p = PrincipalsModel.query.filter_by(principal_name='group:user').first()
-    user.principals.append(p)
+    user = UserModel(username=username, password=password, email=email)
+    rol = RolModel.query.filter_by(rol='user').first()
+    if rol is None:
+        r = RolModel(name='user')
+        r.save_to_db()
+        rol = r
+
+    user.roles.append(rol)
     user.save_to_db()
 
     # Identity can be any data that is json serializable
@@ -274,9 +279,13 @@ api.add_resource(TorrentFiles, f'{PREFIX}/torrents/get_torrent_file/<torrent_id>
 api.add_resource(Announce, '/<passkey>/announce')
 api.add_resource(AnnounceMetadata, f'{PREFIX}/get_announce')
 
+
 if __name__ == '__main__':
     db.init_app(app)
     app.run(host=os.environ.get("FLASK_HOST", default="0.0.0.0"), port=os.environ.get("FLASK_PORT", default=5000))
 # this lines are required for debugging with pycharm (although you can delete them if you want)
 else:
     db.init_app(app)
+    # with app.app_context():
+    #     db.drop_all()
+    #     db.create_all()

@@ -8,10 +8,9 @@ from flask_restful import Resource, reqparse
 from bencode import bencode
 from sqlalchemy.sql.expression import func
 
-from db import DBSession
 from models.peers import PeersModel
-from models.torrents import TorrentsModel
-from models.users import UsersModel
+from models.torrent import TorrentModel
+from models.user import UserModel
 
 import struct
 import logging
@@ -27,7 +26,7 @@ class AnnounceMetadata(Resource):
     @check('torrents_insert')
     def get(self):
         username = get_jwt_identity()
-        user = UsersModel.query.filter_by(username=username).first()
+        user = UserModel.query.filter_by(username=username).first()
         if user is None:
             return {"error": "User not found"}, 404
 
@@ -44,7 +43,7 @@ class Announce(Resource):
         # if request.method == "POST":
         #     return failure("Invalid request type")
         # passkey = request.matchdict['passkey']
-        user = UsersModel.query.filter_by(passkey=passkey).first()
+        user = UserModel.query.filter_by(passkey=passkey).first()
         if not user:
             return {'error': 'Invalid passkey'}, 400
             # return failure('Invalid passkey')
@@ -56,7 +55,7 @@ class Announce(Resource):
 
         infohash = toHex(query_dict['info_hash'])
         peer_id = toHex(query_dict['peer_id'])
-        torrent = TorrentsModel.query.filter_by(info_hash=infohash).first()
+        torrent = TorrentModel.query.filter_by(info_hash=infohash).first()
 
         if not torrent:
             return {'error': 'Torrent not found'}, 404
@@ -181,7 +180,7 @@ class Announce(Resource):
                     seeding=False).order_by(func.random()).limit(50).all()
             else:
                 peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
-                    seeding=True).order_by(func.random()).limit(25).all() + DBSession.query(PeersModel).filter_by(
+                    seeding=True).order_by(func.random()).limit(25).all() + PeersModel.query.filter_by(
                     active=True).filter_by(torrent=torrent).filter_by(seeding=False).order_by(func.random()).limit(
                     25).all()
             for i in peer_objs:

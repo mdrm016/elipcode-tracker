@@ -1,32 +1,26 @@
-import base64
-
 from flask_restful.reqparse import Namespace
 
 from db import db
 from utils import _assign_if_something
 
 
-class CategoriesModel(db.Model):
-    __tablename__ = 'categories'
+class RolModel(db.Model):
+    __tablename__ = 'rol'
 
-    id = db.Column(db.Integer, primary_key=True)
-    image = db.Column(db.String)
-    name = db.Column(db.String)
+    id = db.Column(db.BigInteger, primary_key=True)
+    name = db.Column(db.String(50), unique=True)
 
-    def __init__(self, id, image, name):
-        self.id = id
-        self.image = image
+    def __init__(self, name=None):
         self.name = name
 
     def json(self, jsondepth=0):
         return {
             'id': self.id,
-            'image': self.image,
             'name': self.name,
         }
 
     @classmethod
-    def find_by_id(cls, id):
+    def find_by_rol_id(cls, id):
         return cls.query.filter_by(id=id).first()
 
     @classmethod
@@ -42,6 +36,5 @@ class CategoriesModel(db.Model):
         db.session.commit()
 
     def from_reqparse(self, newdata: Namespace):
-        for no_pk_key in ['image','name']:
+        for no_pk_key in ['name']:
             _assign_if_something(self, newdata, no_pk_key)
-

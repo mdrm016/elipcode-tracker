@@ -1,6 +1,4 @@
-import base64
 import logging
-from datetime import datetime
 
 from flasgger import swag_from
 from flask import request

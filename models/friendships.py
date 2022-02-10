@@ -1,5 +1,3 @@
-import base64
-
 from flask_restful.reqparse import Namespace
 
 from db import db
@@ -8,29 +6,30 @@ from utils import _assign_if_something
 
 class FriendshipsModel(db.Model):
     __tablename__ = 'friendships'
+    __table_args__ = {'schema': 'user'}
 
-    friendship_id = db.Column(db.Integer, primary_key=True)
-    userone_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
-    usertwo_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    id = db.Column(db.Integer, primary_key=True)
+    userone_id = db.Column(db.BigInteger, db.ForeignKey('user.user.id'))
+    usertwo_id = db.Column(db.BigInteger, db.ForeignKey('user.user.id'))
     accepted = db.Column(db.Boolean)
 
-    def __init__(self, friendship_id, userone_id, usertwo_id, accepted):
-        self.friendship_id = friendship_id
+    def __init__(self, id, userone_id, usertwo_id, accepted):
+        self.id = id
         self.userone_id = userone_id
         self.usertwo_id = usertwo_id
         self.accepted = accepted
 
     def json(self, jsondepth=0):
         return {
-            'friendship_id': self.friendship_id,
+            'id': self.id,
             'userone_id': self.userone_id,
             'usertwo_id': self.usertwo_id,
             'accepted': self.accepted,
         }
 
     @classmethod
-    def find_by_friendship_id(cls, friendship_id):
-        return cls.query.filter_by(friendship_id=friendship_id).first()
+    def find_by_friendship_id(cls, id):
+        return cls.query.filter_by(id=id).first()
 
     @classmethod
     def find_all(cls):
@@ -45,6 +44,5 @@ class FriendshipsModel(db.Model):
         db.session.commit()
 
     def from_reqparse(self, newdata: Namespace):
-        for no_pk_key in ['userone_id','usertwo_id','accepted']:
+        for no_pk_key in ['userone_id', 'usertwo_id', 'accepted']:
             _assign_if_something(self, newdata, no_pk_key)
-

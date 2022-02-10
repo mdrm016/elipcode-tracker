@@ -6,42 +6,42 @@ from flasgger import swag_from
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource, reqparse
-from models.principals import PrincipalsModel
+from models.rol import RolModel
 from utils import restrict, check, paginated_results
 
 
 class Principals(Resource):
 
     parser = reqparse.RequestParser()
-    parser.add_argument('principal_id', type=int)
-    parser.add_argument('principal_name', type=str)
+    parser.add_argument('id', type=int)
+    parser.add_argument('name', type=str)
 
     @jwt_required
     @check('principals_get')
     @swag_from('../swagger/principals/get_principals.yaml')
     def get(self, id):
-        principals = PrincipalsModel.find_by_id(id)
-        if principals:
-            return principals.json()
+        rol = RolModel.find_by_rol_id(id)
+        if rol:
+            return rol.json()
         return {'message': 'No se encuentra Principals'}, 404
 
     @jwt_required
     @check('principals_update')
     @swag_from('../swagger/principals/put_principals.yaml')
     def put(self, id):
-        principals = PrincipalsModel.find_by_id(id)
-        if principals:
+        rol = RolModel.find_by_rol_id(id)
+        if rol:
             newdata = Principals.parser.parse_args()
-            principals.from_reqparse(newdata)
-            principals.save_to_db()
-            return principals.json()
+            rol.from_reqparse(newdata)
+            rol.save_to_db()
+            return rol.json()
         return {'message': 'No se encuentra Principals'}, 404
 
     @jwt_required
     @check('principals_delete')
     @swag_from('../swagger/principals/delete_principals.yaml')
     def delete(self, id):
-        principals = PrincipalsModel.find_by_id(id)
+        principals = RolModel.find_by_rol_id(id)
         if principals:
             principals.delete_from_db()
 
@@ -54,7 +54,7 @@ class PrincipalsList(Resource):
     @check('principals_list')
     @swag_from('../swagger/principals/list_principals.yaml')
     def get(self):
-        query = PrincipalsModel.query
+        query = RolModel.query
         return paginated_results(query)
 
     @jwt_required
@@ -65,17 +65,17 @@ class PrincipalsList(Resource):
 
         principal_id = data.get('principal_id')
 
-        if id is not None and PrincipalsModel.find_by_id(id):
+        if id is not None and RolModel.find_by_rol_id(id):
             return {'message': "Ya existe un principals con id '{}'.".format(id)}, 400
 
-        principals = PrincipalsModel(**data)
+        rol = RolModel(**data)
         try:
-            principals.save_to_db()
+            rol.save_to_db()
         except Exception as e:
             logging.error('Ocurrió un error al crear Cliente.', exc_info=e)
             return {"message": "Ocurrió un error al crear Principals."}, 500
 
-        return principals.json(), 201
+        return rol.json(), 201
 
 
 class PrincipalsSearch(Resource):
@@ -84,9 +84,9 @@ class PrincipalsSearch(Resource):
     @check('principals_search')
     @swag_from('../swagger/principals/search_principals.yaml')
     def post(self):
-        query = PrincipalsModel.query
+        query = RolModel.query
         if request.json:
             filters = request.json
-            query = restrict(query, filters, 'principal_id', lambda x: PrincipalsModel.principal_id == x)
-            query = restrict(query, filters, 'principal_name', lambda x: PrincipalsModel.principal_name.contains(x))
+            query = restrict(query, filters, 'id', lambda x: RolModel.id == x)
+            query = restrict(query, filters, 'name', lambda x: RolModel.name.contains(x))
         return paginated_results(query)

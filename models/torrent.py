@@ -6,26 +6,29 @@ from db import db
 from utils import _assign_if_something
 
 
-class TorrentsModel(db.Model):
-    __tablename__ = 'torrents'
+class TorrentModel(db.Model):
+    __tablename__ = 'torrent'
+    __table_args__ = {'schema': 'torrent'}
 
-    torrent_id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True)
     info_hash = db.Column(db.String)
-    name = db.Column(db.String)
+    name = db.Column(db.String(300))
     description = db.Column(db.String)
     info = db.Column(db.PickleType)
-    torrent_file = db.Column(db.String)
+    torrent_file_path = db.Column(db.String(300))
     uploaded_time = db.Column(db.DateTime)
     download_count = db.Column(db.Integer, default=0)
     seeders = db.Column(db.Integer, default=0)
     leechers = db.Column(db.Integer, default=0)
     last_checked = db.Column(db.DateTime)
+    category_id = db.Column(db.Integer, db.ForeignKey('torrent.category.id'))
+    user_create = db.Column(db.String(30))
 
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
-    category = db.relationship('CategoriesModel', backref='torrents')
+    category = db.relationship('CategoryModel', backref='torrents')
 
-    def __init__(self, torrent_id, info_hash, name, description, info, torrent_file, uploaded_time, download_count, seeders, leechers, last_checked, category_id):
-        self.torrent_id = torrent_id
+    def __init__(self, id, info_hash, name, description, info, torrent_file, uploaded_time, download_count, seeders,
+                 leechers, last_checked, category_id, user_create):
+        self.id = id
         self.info_hash = info_hash
         self.name = name
         self.description = description
@@ -37,10 +40,11 @@ class TorrentsModel(db.Model):
         self.leechers = leechers
         self.last_checked = last_checked
         self.category_id = category_id
+        self.user_create = user_create
 
     def json(self, jsondepth=0):
         return {
-            'torrent_id': self.torrent_id,
+            'id': self.id,
             'info_hash': self.info_hash,
             'name': self.name,
             'description': self.description,
@@ -52,11 +56,12 @@ class TorrentsModel(db.Model):
             'leechers': self.leechers,
             'last_checked': self.last_checked,
             'category_id': self.category_id,
+            'user_create': self.user_create,
         }
 
     @classmethod
-    def find_by_torrent_id(cls, torrent_id):
-        return cls.query.filter_by(torrent_id=torrent_id).first()
+    def find_by_torrent_id(cls, id):
+        return cls.query.filter_by(id=id).first()
 
     @classmethod
     def find_all(cls):
@@ -74,6 +79,6 @@ class TorrentsModel(db.Model):
         db.session.commit()
 
     def from_reqparse(self, newdata: Namespace):
-        for no_pk_key in ['info_hash','name','description','info','torrent_file','uploaded_time','download_count','seeders','leechers','last_checked','category_id']:
+        for no_pk_key in ['info_hash', 'name', 'description', 'info', 'torrent_file', 'uploaded_time', 'download_count',
+                          'seeders', 'leechers', 'last_checked', 'category_id', 'user_create']:
             _assign_if_something(self, newdata, no_pk_key)
-

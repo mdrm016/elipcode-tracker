@@ -9,24 +9,29 @@ from flask_sqlalchemy import xrange
 
 from db import db
 from models.friendships import FriendshipsModel
-from models.principalmembers import PrincipalmembersModel
-from models.principals import PrincipalsModel
+from models.rol_user import RolUserModel
+from models.rol import RolModel
 from utils import _assign_if_something
 
 
-class UsersModel(db.Model):
-    __tablename__ = 'users'
+class UserModel(db.Model):
+    __tablename__ = 'user'
+    __table_args__ = {'schema': 'user'}
 
-    user_id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String, unique=True)
-    password = db.Column(db.String)
-    email = db.Column(db.String, unique=True)
-    passkey = db.Column(db.String)
+    id = db.Column(db.BigInteger, primary_key=True)
+    username = db.Column(db.String(30), unique=True)
+    password = db.Column(db.String(300))
+    email = db.Column(db.String(50), unique=True)
+    passkey = db.Column(db.String(100))
     uploaded = db.Column(db.Integer, default=0)
     downloaded = db.Column(db.Integer, default=0)
-    friendships = db.relationship(FriendshipsModel, primaryjoin=(FriendshipsModel.userone_id == user_id), backref='userone')
-    awaiting_friendships = db.relationship(FriendshipsModel, primaryjoin=(FriendshipsModel.usertwo_id == user_id), backref='usertwo')
-    principals = db.relationship(PrincipalsModel, secondary=PrincipalmembersModel.__tablename__)
+    user_create = db.Column(db.String(30))
+    date_create = db.Column(db.DateTime)
+
+    friendships = db.relationship(FriendshipsModel, primaryjoin=(FriendshipsModel.userone_id == id), backref='userone')
+    awaiting_friendships = db.relationship(FriendshipsModel, primaryjoin=(FriendshipsModel.usertwo_id == id),
+                                           backref='usertwo')
+    roles = db.relationship(RolModel, secondary='user.rol_user')
 
     def __init__(self, username, password, email):
         self.username = username
@@ -36,17 +41,19 @@ class UsersModel(db.Model):
 
     def json(self, jsondepth=0):
         return {
-            'user_id': self.user_id,
+            'user_id': self.id,
             'username': self.username,
             'password': self.password,
             'passkey': self.passkey,
             'uploaded': self.uploaded,
             'downloaded': self.downloaded,
+            'user_create': self.user_create,
+            'date_create': self.date_create,
         }
 
     @classmethod
-    def find_by_user_id(cls, user_id):
-        return cls.query.filter_by(user_id=user_id).first()
+    def find_by_user_id(cls, id):
+        return cls.query.filter_by(id=id).first()
 
     @classmethod
     def find_all(cls):
@@ -67,5 +74,5 @@ class UsersModel(db.Model):
         db.session.commit()
 
     def from_reqparse(self, newdata: Namespace):
-        for no_pk_key in ['username', 'password', 'passkey', 'uploaded', 'downloaded']:
+        for no_pk_key in ['username', 'password', 'passkey', 'uploaded', 'downloaded', 'user_create', 'date_create']:
             _assign_if_something(self, newdata, no_pk_key)
