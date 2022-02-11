@@ -20,7 +20,7 @@ class CategoryModel(db.Model):
     def json(self, jsondepth=0):
         return {
             'id': self.id,
-            'image_path': self.image,
+            'image_path': self.image_path,
             'name': self.name,
         }
 

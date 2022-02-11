@@ -8,7 +8,7 @@ from models.category import CategoryModel
 from utils import restrict, check, paginated_results
 
 
-class Categories(Resource):
+class Category(Resource):
 
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=int)
@@ -19,9 +19,9 @@ class Categories(Resource):
     @check('categories_get')
     @swag_from('../swagger/categories/get_categories.yaml')
     def get(self, id):
-        categories = CategoryModel.find_by_id(id)
-        if categories:
-            return categories.json()
+        category = CategoryModel.find_by_id(id)
+        if category:
+            return category.json()
         return {'message': 'No se encuentra Categories'}, 404
 
     @jwt_required
@@ -30,7 +30,7 @@ class Categories(Resource):
     def put(self, id):
         category = CategoryModel.find_by_id(id)
         if category:
-            newdata = Categories.parser.parse_args()
+            newdata = Category.parser.parse_args()
             category.from_reqparse(newdata)
             category.save_to_db()
             return category.json()
@@ -47,7 +47,7 @@ class Categories(Resource):
         return {'message': 'Se ha borrado Categories'}
 
 
-class CategoriesList(Resource):
+class CategoryList(Resource):
 
     @jwt_required
     @check('categories_list')
@@ -60,7 +60,7 @@ class CategoriesList(Resource):
     @check('categories_insert')
     @swag_from('../swagger/categories/post_categories.yaml')
     def post(self):
-        data = Categories.parser.parse_args()
+        data = Category.parser.parse_args()
 
         id = data.get('id')
 
@@ -77,7 +77,7 @@ class CategoriesList(Resource):
         return category.json(), 201
 
 
-class CategoriesSearch(Resource):
+class CategorySearch(Resource):
 
     @jwt_required
     @check('categories_search')

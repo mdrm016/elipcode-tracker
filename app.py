@@ -9,7 +9,7 @@ from resources.peers import Peers, PeersList, PeersSearch
 from resources.rol_user import Principalmembers, PrincipalmembersList, PrincipalmembersSearch
 from resources.user import Users, UsersList, UsersSearch
 from resources.rol import Principals, PrincipalsList, PrincipalsSearch
-from resources.category import Categories, CategoriesList, CategoriesSearch
+from resources.category import Category, CategoryList, CategorySearch
 import os
 from db import db
 from flasgger import Swagger, swag_from
@@ -212,8 +212,9 @@ def register():
     if not username or not password or not email:
         return jsonify({"error": "Bad username, password or email. Please, complete the necesary fields"}), 400
 
-    user = UserModel(username=username, password=password, email=email)
-    rol = RolModel.query.filter_by(rol='user').first()
+    user = UserModel(username=username, password=password, email=email, user_create='free',
+                     date_create=datetime.datetime.now())
+    rol = RolModel.query.filter_by(name='user').first()
     if rol is None:
         r = RolModel(name='user')
         r.save_to_db()
@@ -247,9 +248,9 @@ def protected():
     return jsonify(logged_in_as=current_user), 200
 
 
-api.add_resource(Categories, f'{PREFIX}/categories/<id>')
-api.add_resource(CategoriesList, f'{PREFIX}/categories')
-api.add_resource(CategoriesSearch, f'{PREFIX}/search/categories')
+api.add_resource(Category, f'{PREFIX}/category/<id>')
+api.add_resource(CategoryList, f'{PREFIX}/category')
+api.add_resource(CategorySearch, f'{PREFIX}/search/category')
 
 api.add_resource(Principals, f'{PREFIX}/principals/<principal_id>')
 api.add_resource(PrincipalsList, f'{PREFIX}/principals')
@@ -278,7 +279,6 @@ api.add_resource(TorrentFiles, f'{PREFIX}/torrents/get_torrent_file/<torrent_id>
 
 api.add_resource(Announce, '/<passkey>/announce')
 api.add_resource(AnnounceMetadata, f'{PREFIX}/get_announce')
-
 
 if __name__ == '__main__':
     db.init_app(app)

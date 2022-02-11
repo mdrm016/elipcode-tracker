@@ -33,11 +33,13 @@ class UserModel(db.Model):
                                            backref='usertwo')
     roles = db.relationship(RolModel, secondary='user.rol_user')
 
-    def __init__(self, username, password, email):
+    def __init__(self, username, password, email, user_create, date_create):
         self.username = username
         self.password = hashlib.sha1((password + app.config['USER_SECRET_KEY']).encode('utf-8')).hexdigest()
         self.email = email
         self.passkey = "".join([random.choice(string.ascii_letters) for x in xrange(16)])
+        self.user_create = user_create
+        self.date_create = date_create
 
     def json(self, jsondepth=0):
         return {

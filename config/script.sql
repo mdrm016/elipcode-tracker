@@ -40,7 +40,7 @@ create table "user".user
     uploaded   integer default 0,
     downloaded integer default 0,
     user_create varchar(30),
-    date_create timestamp
+    date_create timestamp not null default now()
 );
 alter table "user".user
     owner to postgres;

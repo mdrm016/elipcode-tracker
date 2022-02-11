@@ -6,6 +6,7 @@ from utils import _assign_if_something
 
 class RolModel(db.Model):
     __tablename__ = 'rol'
+    __table_args__ = {'schema': 'user'}
 
     id = db.Column(db.BigInteger, primary_key=True)
     name = db.Column(db.String(50), unique=True)
