@@ -1,3 +1,4 @@
+from resources.torrent_category import TorrentCategory, TorrentCategoryList, TorrentCategorySearch
 import datetime
 
 from models.rol import RolModel
@@ -10,6 +11,7 @@ from resources.rol_user import Principalmembers, PrincipalmembersList, Principal
 from resources.user import Users, UsersList, UsersSearch
 from resources.rol import Principals, PrincipalsList, PrincipalsSearch
 from resources.category import Category, CategoryList, CategorySearch
+from resources.torrent_file import TorrentFile, TorrentFileList, TorrentFileSearch
 import os
 from db import db
 from flasgger import Swagger, swag_from
@@ -23,6 +25,18 @@ from flask_restful import Api, Resource
 from utils import JSONEncoder, unique_md5, JSONDecoder
 
 permisions = [
+    'torrent_category_list',
+    'torrent_category_search',
+    'torrent_category_get',
+    'torrent_category_insert',
+    'torrent_category_update',
+    'torrent_category_delete',
+    'torrent_file_list',
+    'torrent_file_search',
+    'torrent_file_get',
+    'torrent_file_insert',
+    'torrent_file_update',
+    'torrent_file_delete',
     'torrents_list',
     'torrents_search',
     'torrents_get',
@@ -65,9 +79,11 @@ permisions = [
     'principals_insert',
     'principals_update',
     'principals_delete',
+    'torrent_file_download'
 ]
 
-app = Flask(__name__)
+PREFIX_STORAGE = os.environ.get('PREFIX_STORAGE_PATH', '/media')
+app = Flask(__name__, static_folder='static', static_url_path=f'{PREFIX_STORAGE}/static')
 CORS(app, supports_credentials=True)
 api = Api(app, errors={
     'NoAuthorizationError': {
@@ -136,9 +152,8 @@ def after_request(response):
 app.config['ANNOUNCE_DOMAIN'] = 'http://192.168.100.2:5000'
 app.config['USER_SECRET_KEY'] = 'e4cba2d5b70f412896117265'
 app.config['UPLOAD_FOLDER'] = 'static/storage'
-app.config['TEMPORAL_FOLDER'] = 'tmp'
-app.config['TORRENT_FILES_MODULE'] = 'torrent'
 app.config['TORRENT_FILES_PREFIX'] = '[elipcode-tracker.net]'
+app.config['SYSTEM_FILES_FOLDER'] = 'static/system'
 
 # Setup the Flask-JWT-Extended extension
 app.config['JWT_SECRET_KEY'] = 'super-secret'
@@ -272,13 +287,21 @@ api.add_resource(Friendships, f'{PREFIX}/friendships/<friendship_id>')
 api.add_resource(FriendshipsList, f'{PREFIX}/friendships')
 api.add_resource(FriendshipsSearch, f'{PREFIX}/search/friendships')
 
-api.add_resource(Torrents, f'{PREFIX}/torrents/<torrent_id>')
+api.add_resource(Torrents, f'{PREFIX}/torrents/<id>')
 api.add_resource(TorrentsList, f'{PREFIX}/torrents')
 api.add_resource(TorrentsSearch, f'{PREFIX}/search/torrents')
-api.add_resource(TorrentFiles, f'{PREFIX}/torrents/get_torrent_file/<torrent_id>')
+api.add_resource(TorrentFiles, f'{PREFIX}/torrents/get_torrent_file/<id>')
 
 api.add_resource(Announce, '/<passkey>/announce')
 api.add_resource(AnnounceMetadata, f'{PREFIX}/get_announce')
+
+api.add_resource(TorrentFile, '/torrent_file/<id>')
+api.add_resource(TorrentFileList, '/torrent_file')
+api.add_resource(TorrentFileSearch, '/search/torrent_file')
+
+api.add_resource(TorrentCategory, '/torrent_category/<id>')
+api.add_resource(TorrentCategoryList, '/torrent_category')
+api.add_resource(TorrentCategorySearch, '/search/torrent_category')
 
 if __name__ == '__main__':
     db.init_app(app)

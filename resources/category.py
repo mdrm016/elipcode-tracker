@@ -4,6 +4,8 @@ from flasgger import swag_from
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource, reqparse
+
+from file_utils import save_system_file, delete_file
 from models.category import CategoryModel
 from utils import restrict, check, paginated_results
 
@@ -11,9 +13,10 @@ from utils import restrict, check, paginated_results
 class Category(Resource):
 
     parser = reqparse.RequestParser()
-    parser.add_argument('id', type=int)
     parser.add_argument('image_path', type=str)
     parser.add_argument('name', type=str)
+
+    MODULE_FILES_NAME = 'category'
 
     @jwt_required
     @check('categories_get')
@@ -29,12 +32,24 @@ class Category(Resource):
     @swag_from('../swagger/categories/put_categories.yaml')
     def put(self, id):
         category = CategoryModel.find_by_id(id)
-        if category:
-            newdata = Category.parser.parse_args()
-            category.from_reqparse(newdata)
-            category.save_to_db()
-            return category.json()
-        return {'message': 'No se encuentra Categories'}, 404
+        if not category:
+            return {'message': 'No se encuentra Categories'}, 404
+
+        newdata = Category.parser.parse_args()
+        category.from_reqparse(newdata)
+
+        # Si hay una nueva imagen
+        if 'image' in request.files:
+            category_image = request.files['image']
+            if category_image:
+                # Se borra la imagen anterior
+                delete_file(category.image_path)
+                # Se agrega la nueva imagen
+                category.image_path = save_system_file(category_image, Category.MODULE_FILES_NAME)
+
+        category.save_to_db()
+        return {'msg': 'Category updated'}, 200
+
 
     @jwt_required
     @check('categories_delete')
@@ -42,9 +57,12 @@ class Category(Resource):
     def delete(self, id):
         category = CategoryModel.find_by_id(id)
         if category:
-            category.delete_from_db()
+            try:
+                category.delete_from_db()
+            except Exception as e:
+                return {'error': str(e.__cause__)}, 500
 
-        return {'message': 'Se ha borrado Categories'}
+        return {'msg': 'Category deleted'}
 
 
 class CategoryList(Resource):
@@ -62,19 +80,22 @@ class CategoryList(Resource):
     def post(self):
         data = Category.parser.parse_args()
 
-        id = data.get('id')
+        category = CategoryModel.query.filter_by(name=data['name']).first()
+        if category:
+            return {"error": "This category already exist"}, 400
 
-        if id is not None and CategoryModel.find_by_id(id):
-            return {'message': "Ya existe un categories con id '{}'.".format(id)}, 400
+        if 'image' in request.files:
+            category_image = request.files['image']
+            if category_image:
+                data['image_path'] = save_system_file(category_image, Category.MODULE_FILES_NAME)
 
         category = CategoryModel(**data)
         try:
             category.save_to_db()
         except Exception as e:
-            logging.error('Ocurrió un error al crear Cliente.', exc_info=e)
-            return {"message": "Ocurrió un error al crear Categories."}, 500
+            return {"error": str(e.__cause__)}, 500
 
-        return category.json(), 201
+        return {"msg": "Category created"}, 201
 
 
 class CategorySearch(Resource):

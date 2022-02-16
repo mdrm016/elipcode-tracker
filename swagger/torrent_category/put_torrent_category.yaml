@@ -1,0 +1,38 @@
+Actualiza Torrent Category
+---
+tags:
+- "torrent-category"
+responses:
+  200:
+    description: Se actualiza Torrent Category
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: id
+    in: path
+    required: true
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/TorrentCategoryPut"
+definitions:
+    TorrentCategoryPut:
+        type: "object"
+        properties:
+            id:
+                type: "int64"
+            torrent_id:
+                type: "int64"
+            category_id:
+                type: "int64"
+        example:
+            id: 37
+            torrent_id: 20
+            category_id: 48

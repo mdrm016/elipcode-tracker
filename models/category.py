@@ -9,13 +9,12 @@ class CategoryModel(db.Model):
     __table_args__ = {'schema': 'torrent'}
 
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20), nullable=False)
     image_path = db.Column(db.String(300))
-    name = db.Column(db.String, nullable=True)
 
-    def __init__(self, id, image, name):
-        self.id = id
-        self.image = image
+    def __init__(self, name, image_path):
         self.name = name
+        self.image_path = image_path
 
     def json(self, jsondepth=0):
         return {
@@ -41,5 +40,5 @@ class CategoryModel(db.Model):
         db.session.commit()
 
     def from_reqparse(self, newdata: Namespace):
-        for no_pk_key in ['image_path', 'name']:
+        for no_pk_key in ['name', 'image_path']:
             _assign_if_something(self, newdata, no_pk_key)

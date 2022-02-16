@@ -1,0 +1,53 @@
+Actualiza Torrent File
+---
+tags:
+- "torrent-file"
+responses:
+  200:
+    description: Se actualiza Torrent File
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: id
+    in: path
+    required: true
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/TorrentFilePut"
+definitions:
+    TorrentFilePut:
+        type: "object"
+        properties:
+            id:
+                type: "int64"
+            torrent_id:
+                type: "int64"
+            module:
+                type: "string"
+            file_name:
+                type: "string"
+            mime_type:
+                type: "string"
+            path:
+                type: "string"
+            user_create:
+                type: "string"
+            date_create:
+                type: "datetime"
+        example:
+            id: 44
+            torrent_id: 23
+            module: Lorem ipsum dol
+            file_name: Lorem ipsum dolor sit am
+            mime_type: Lorem ipsum dolor si
+            path: Lorem ipsum dolor sit amet
+            user_create: Lorem ipsum dolor sit amet
+            date_create: '2019-01-01T00:00:00'

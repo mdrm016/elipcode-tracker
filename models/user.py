@@ -23,8 +23,8 @@ class UserModel(db.Model):
     password = db.Column(db.String(300))
     email = db.Column(db.String(50), unique=True)
     passkey = db.Column(db.String(100))
-    uploaded = db.Column(db.Integer, default=0)
-    downloaded = db.Column(db.Integer, default=0)
+    uploaded = db.Column(db.BigInteger, default=0)
+    downloaded = db.Column(db.BigInteger, default=0)
     user_create = db.Column(db.String(30))
     date_create = db.Column(db.DateTime)
 
