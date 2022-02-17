@@ -9,13 +9,14 @@ from flask import request, json, current_app, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_restful import Resource, reqparse
 from pytz import unicode
+from torrentool.torrent import Torrent
 
-from file_utils import save_file, cheksum_file, delete_files_by_hash_datetime
+from file_utils import save_file, cheksum_file, delete_files_by_hash_datetime, delete_file
 from models.category import CategoryModel
 from models.torrent import TorrentModel
 from models.torrent_category import TorrentCategoryModel
-from models.torrent_file import TorrentFileModel
-from torrent_utils import get_torrent_info
+from resources.announce import get_announce
+from torrent_utils import get_torrent_info, set_torrent_announce
 from utils import restrict, check, paginated_results
 
 log = logging.getLogger(__name__)
@@ -35,17 +36,13 @@ class Torrents(Resource):
     parser.add_argument('seeders', type=int)
     parser.add_argument('leechers', type=int)
     parser.add_argument('last_checked', type=lambda x: datetime.strptime(x, '%Y-%m-%dT%H:%M:%S'))
-    parser.add_argument('user_create', type=str)
+    parser.add_argument('uploaded_user', type=str)
 
     @jwt_required
     @check('torrents_get')
     @swag_from('../swagger/torrents/get_torrents.yaml')
     def get(self, id):
         torrent = TorrentModel.find_by_torrent_id(id)
-        # if not torrent.info:
-        #     torrent_file = [x for x in torrent.files if x.module == 'TORRENT'].pop()
-        #     torrent.info = get_torrent_info(torrent_file.path)
-        #     torrent.save_to_db()
         if torrent:
             return torrent.json(jsondepth=1)
         return {'message': 'Torrent not found'}, 404
@@ -92,7 +89,7 @@ class TorrentsList(Resource):
         torrent.name = unicode(torrent.name)
         torrent.uploaded_time = datetime.now()
         torrent.last_checked = datetime.now()
-        torrent.user_create = get_jwt_identity()
+        torrent.uploaded_user = get_jwt_identity()
 
         # Chech if exist almost one category
         categories = json.loads(request.values['categories'])
@@ -117,10 +114,12 @@ class TorrentsList(Resource):
         torrent.files.append(torrent_file)
 
         # Get Torrent Info Hash
-        info = bencodepy.bencode(bencodepy.bdecode(open(torrent_file.path, 'rb').read())[b'info'])
-        info_hash = hashlib.sha1(info).hexdigest()
+        torrent_data = Torrent.from_file(torrent_file.path)
+        info_hash = torrent_data.info_hash
+        # info = bencodepy.bencode(bencodepy.bdecode(open(torrent_file.path, 'rb').read())[b'info'])
+        # info_hash = hashlib.sha1(info).hexdigest()
         torrent.info_hash = info_hash
-        logging.info('INFOHASH: %s', info_hash)
+        log.info('INFOHASH: %s', info_hash)
 
         # Save torrent info
         torrent.info = get_torrent_info(torrent_file.path)
@@ -156,9 +155,14 @@ class TorrentsList(Resource):
             logging.error('An error occurred while creating the Torrent.', exc_info=error)
             # Delete all files by torrent checksum
             delete_files_by_hash_datetime(torrent_file_cheksum, torrent.uploaded_time)
-            return {"error": "An error occurred while creating the Torrent."}, 500
+            return {'error': 'An error occurred while creating the Torrent.'}, 500
 
-        return {"msg": "Torrent file created."}, 201
+        data_return = {
+            'id': torrent.id,
+            'msg': 'Torrent file created.'
+        }
+
+        return data_return, 201
 
 
 class TorrentsSearch(Resource):
@@ -177,7 +181,7 @@ class TorrentsSearch(Resource):
             query = restrict(query, filters, 'download_count', lambda x: TorrentModel.download_count == x)
             query = restrict(query, filters, 'seeders', lambda x: TorrentModel.seeders == x)
             query = restrict(query, filters, 'leechers', lambda x: TorrentModel.leechers == x)
-            query = restrict(query, filters, 'user_create', lambda x: TorrentModel.user_create == x)
+            query = restrict(query, filters, 'uploaded_user', lambda x: TorrentModel.uploaded_user == x)
 
         # order section
         query = query.order_by(TorrentModel.uploaded_time.desc())
@@ -197,8 +201,12 @@ class TorrentFiles(Resource):
 
         torrent_file = next(x for x in torrent.files if x.module == 'TORRENT')
         new_filename = "{} - {}".format(current_app.config['TORRENT_FILES_PREFIX'], torrent_file.file_name)
+
+        # TODO: Set the correct announce by user
+        tmp_path = set_torrent_announce(torrent_file.path, get_announce())
+
         if torrent_file:
-            response = send_file(torrent_file.path, attachment_filename=new_filename, as_attachment=True)
+            response = send_file(tmp_path, attachment_filename=new_filename, as_attachment=True)
             response.headers["x-filename"] = new_filename
             response.headers["Access-Control-Expose-Headers"] = 'x-filename'
             return response

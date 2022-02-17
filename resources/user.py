@@ -4,13 +4,13 @@ from datetime import datetime
 
 from flasgger import swag_from
 from flask import request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_restful import Resource, reqparse
 from models.user import UserModel
 from utils import restrict, check, paginated_results
 
 
-class Users(Resource):
+class User(Resource):
 
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=int)
@@ -38,7 +38,7 @@ class Users(Resource):
     def put(self, id):
         user = UserModel.find_by_user_id(id)
         if user:
-            newdata = Users.parser.parse_args()
+            newdata = User.parser.parse_args()
             user.from_reqparse(newdata)
             user.save_to_db()
             return user.json()
@@ -55,7 +55,7 @@ class Users(Resource):
         return {'message': 'Se ha borrado Users'}
 
 
-class UsersList(Resource):
+class UserList(Resource):
 
     @jwt_required
     @check('users_list')
@@ -68,7 +68,7 @@ class UsersList(Resource):
     @check('users_insert')
     @swag_from('../swagger/users/post_users.yaml')
     def post(self):
-        data = Users.parser.parse_args()
+        data = User.parser.parse_args()
         user_id = data.get('user_id')
 
         if id is not None and UserModel.find_by_user_id(id):
@@ -79,12 +79,12 @@ class UsersList(Resource):
             user.save_to_db()
         except Exception as e:
             logging.error('Ocurrió un error al crear Cliente.', exc_info=e)
-            return {"message": "Ocurrió un error al crear Users."}, 500
+            return {"error": "An error occurred while creating the user."}, 500
 
-        return user.json(), 201
+        return {"msg": "User created."}, 201
 
 
-class UsersSearch(Resource):
+class UserSearch(Resource):
 
     @jwt_required
     @check('users_search')
@@ -102,3 +102,25 @@ class UsersSearch(Resource):
             query = restrict(query, filters, 'user_create', lambda x: UserModel.user_create == x)
             query = restrict(query, filters, 'date_create', lambda x: UserModel.date_create == x)
         return paginated_results(query)
+
+
+class UserStatistics(Resource):
+
+    @jwt_required
+    # @check('user_statistics')
+    def get(self):
+        username = get_jwt_identity()
+        usuario = UserModel.query.filter_by(username=username).first()
+
+        if not usuario:
+            return {'error': 'User not found'}, 404
+
+        statistics = {
+            'uploaded': usuario.uploaded,
+            'downloaded': usuario.downloaded,
+            'seed_bonus': 0,
+            'downloads': 0,
+            'uploads': 0
+        }
+
+        return statistics, 200

@@ -20,18 +20,30 @@ from utils import check
 log = logging.getLogger(__name__)
 
 
+def failure(reason):
+    return Response(bencode({'failure reason': reason}))
+
+
+def get_announce():
+    username = get_jwt_identity()
+    user = UserModel.query.filter_by(username=username).first()
+    if user is None:
+        return None
+
+    announce_url = "{}/{}/{}".format(current_app.config['ANNOUNCE_DOMAIN'], user.passkey, 'announce')
+    return announce_url
+
+
 class AnnounceMetadata(Resource):
 
     @jwt_required
     @check('torrents_insert')
     def get(self):
-        username = get_jwt_identity()
-        user = UserModel.query.filter_by(username=username).first()
-        if user is None:
+        announce_url = get_announce()
+        if announce_url is None:
             return {"error": "User not found"}, 404
 
-        announce_domain = "{}/{}/{}".format(current_app.config['ANNOUNCE_DOMAIN'], user.passkey, 'announce')
-        return {"announce": announce_domain}, 200
+        return {"announce": announce_url}, 200
 
 
 class Announce(Resource):
@@ -45,21 +57,19 @@ class Announce(Resource):
         # passkey = request.matchdict['passkey']
         user = UserModel.query.filter_by(passkey=passkey).first()
         if not user:
-            return {'error': 'Invalid passkey'}, 400
-            # return failure('Invalid passkey')
+            # return {'error': 'Invalid passkey'}, 400
+            return failure('Invalid passkey')
         toHex = lambda x: "".join([hex(ord(c))[2:].zfill(2) for c in x])
         parse_url = urlparse(request.url)
         query_dict = dict(parse_qsl(parse_url.query, encoding='latin_1'))
-
-        # query_dict = dict(parse_qsl(request.headers.environ['QUERY_STRING']))
 
         infohash = toHex(query_dict['info_hash'])
         peer_id = toHex(query_dict['peer_id'])
         torrent = TorrentModel.query.filter_by(info_hash=infohash).first()
 
         if not torrent:
-            return {'error': 'Torrent not found'}, 404
-            # return failure("Torrent not found")
+            # return {'error': 'Torrent not found'}, 404
+            return failure("Torrent not found or no registered")
         peer = PeersModel.query.filter_by(peer_id=peer_id).first()
         left = int(query_dict['left'])
         if not peer:
@@ -88,8 +98,6 @@ class Announce(Resource):
         if left == 0:
             peer.seeding = True
             torrent.save_to_db()
-            # DBSession.add(torrent)
-            # DBSession.commit()
         else:
             peer.seeding = False
 
@@ -129,7 +137,7 @@ class Announce(Resource):
             user.uploaded += diff_uploaded
             user.downloaded += diff_downloaded
 
-        if torrent.last_checked == None or (datetime.datetime.now() - torrent.last_checked).seconds >= 60 * 10:
+        if torrent.last_checked is None or (datetime.datetime.now() - torrent.last_checked).seconds >= 60 * 10:
             peer_objs = torrent.peers
             seeders = 0
             leechers = 0
@@ -142,12 +150,9 @@ class Announce(Resource):
             torrent.seeders = seeders
             torrent.leechers = leechers
             torrent.last_checked = datetime.datetime.now()
-            # DBSession.add(torrent)
-            torrent.save_tmp()
+            torrent.save_to_db()
 
-        # DBSession.add(peer)
-        # DBSession.commit()
-        peer.save_to_db()
+        peer.save_to_db()   # al guardar el peer se guarda los cambios del usuario
         if compactmode:
             peers = ""
             if peer.seeding:
@@ -167,7 +172,7 @@ class Announce(Resource):
                 log.error(i.ip)
                 ipsplit = i.ip.split(".")
                 peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]),
-                                     i.port)
+                                     i.port).decode('latin1')
             log.error(toHex(peers))
             return Response(bencode(
                 {'interval': 1800, 'tracker id': 'Hermes', 'complete': torrent.seeders, 'incomplete': torrent.leechers,

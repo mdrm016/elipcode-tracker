@@ -90,12 +90,11 @@ create table torrent.torrent
     description    text,
     info           bytea,
     download_count integer default 0,
-    downloaded     bigint  default 0,
     seeders        integer default 0,
     leechers       integer default 0,
     last_checked   timestamp,
     uploaded_time  timestamp,
-    user_create    varchar(30)
+    uploaded_user  varchar(30)
 );
 alter table torrent.torrent
     owner to postgres;
@@ -137,10 +136,10 @@ create table torrent.peers
     ip               varchar,
     port             integer,
     active           boolean,
-    uploaded         integer default 0,
-    downloaded       integer default 0,
-    uploaded_total   integer default 0,
-    downloaded_total integer default 0,
+    uploaded         bigint default 0,
+    downloaded       bigint default 0,
+    uploaded_total   bigint default 0,
+    downloaded_total bigint default 0,
     seeding          boolean default false,
     constraint peers_torrent_id_fkey FOREIGN KEY (torrent_id) references torrent.torrent (id),
     constraint peers_user_id_fkey FOREIGN KEY (user_id) references "user".user (id)

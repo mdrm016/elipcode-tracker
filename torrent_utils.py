@@ -1,6 +1,10 @@
 import logging
+import os
 
 import bencodepy
+from torrentool.torrent import Torrent
+
+from file_utils import get_tmp_directory
 
 log = logging.getLogger(__name__)
 
@@ -37,3 +41,11 @@ def get_torrent_info(torrent_path):
         log.error(str(e.__cause__))
 
     return info_dict
+
+
+def set_torrent_announce(torrent_path, announce_url):
+    torrent = Torrent.from_file(torrent_path)
+    torrent.announce_urls = [announce_url]
+    path = os.path.join(get_tmp_directory(), 'tmp_'+torrent_path.split(os.path.sep)[-1])
+    torrent.to_file(path)
+    return path

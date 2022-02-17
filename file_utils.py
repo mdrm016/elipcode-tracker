@@ -21,7 +21,7 @@ def get_filename_hash(filename):
 
 
 def get_tmp_directory():
-    path_string = str(os.path.join(current_app.config['UPLOAD_FOLDER'], current_app.config['TEMPORAL_FOLDER']))
+    path_string = str(current_app.config['UPLOAD_TMP_FOLDER'])
     return create_or_get_path(path_string)
 
 

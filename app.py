@@ -8,7 +8,7 @@ from resources.torrent import Torrents, TorrentsList, TorrentsSearch, TorrentFil
 from resources.friendships import Friendships, FriendshipsList, FriendshipsSearch
 from resources.peers import Peers, PeersList, PeersSearch
 from resources.rol_user import Principalmembers, PrincipalmembersList, PrincipalmembersSearch
-from resources.user import Users, UsersList, UsersSearch
+from resources.user import User, UserList, UserSearch, UserStatistics
 from resources.rol import Principals, PrincipalsList, PrincipalsSearch
 from resources.category import Category, CategoryList, CategorySearch
 from resources.torrent_file import TorrentFile, TorrentFileList, TorrentFileSearch
@@ -79,7 +79,8 @@ permisions = [
     'principals_insert',
     'principals_update',
     'principals_delete',
-    'torrent_file_download'
+    'torrent_file_download',
+    'user_statistics'
 ]
 
 PREFIX_STORAGE = os.environ.get('PREFIX_STORAGE_PATH', '/media')
@@ -151,6 +152,7 @@ def after_request(response):
 # Tracker enviroment variables
 app.config['ANNOUNCE_DOMAIN'] = 'http://192.168.100.2:5000'
 app.config['USER_SECRET_KEY'] = 'e4cba2d5b70f412896117265'
+app.config['UPLOAD_TMP_FOLDER'] = 'static/tmp'
 app.config['UPLOAD_FOLDER'] = 'static/storage'
 app.config['TORRENT_FILES_PREFIX'] = '[elipcode-tracker.net]'
 app.config['SYSTEM_FILES_FOLDER'] = 'static/system'
@@ -271,9 +273,10 @@ api.add_resource(Principals, f'{PREFIX}/principals/<principal_id>')
 api.add_resource(PrincipalsList, f'{PREFIX}/principals')
 api.add_resource(PrincipalsSearch, f'{PREFIX}/search/principals')
 
-api.add_resource(Users, f'{PREFIX}/users/<user_id>')
-api.add_resource(UsersList, f'{PREFIX}/users')
-api.add_resource(UsersSearch, f'{PREFIX}/search/users')
+api.add_resource(User, f'{PREFIX}/users/<user_id>')
+api.add_resource(UserList, f'{PREFIX}/users')
+api.add_resource(UserSearch, f'{PREFIX}/search/users')
+api.add_resource(UserStatistics, f'{PREFIX}/user/statistics')
 
 api.add_resource(Principalmembers, f'{PREFIX}/principalmembers/<principalmembership_id>')
 api.add_resource(PrincipalmembersList, f'{PREFIX}/principalmembers')

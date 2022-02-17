@@ -21,17 +21,16 @@ class TorrentModel(db.Model):
     info = db.Column(db.PickleType)
     uploaded_time = db.Column(db.DateTime)
     download_count = db.Column(db.Integer, default=0)
-    downloaded = db.Column(db.BigInteger, default=0)
     seeders = db.Column(db.Integer, default=0)
     leechers = db.Column(db.Integer, default=0)
     last_checked = db.Column(db.DateTime)
-    user_create = db.Column(db.String(30))
+    uploaded_user = db.Column(db.String(30))
 
     categories = db.relationship(CategoryModel, secondary='torrent.torrent_category')
     files = db.relationship(TorrentFileModel)
 
     def __init__(self, id, info_hash, name, url, description, info, uploaded_time, download_count, downloaded, seeders,
-                 leechers, last_checked, user_create):
+                 leechers, last_checked, uploaded_user):
         self.id = id
         self.info_hash = info_hash
         self.name = name
@@ -44,7 +43,7 @@ class TorrentModel(db.Model):
         self.seeders = seeders
         self.leechers = leechers
         self.last_checked = last_checked
-        self.user_create = user_create
+        self.uploaded_user = uploaded_user
 
     def json(self, jsondepth=0):
         json = {
@@ -54,13 +53,12 @@ class TorrentModel(db.Model):
             'url': self.url,
             'description': self.description,
             'info': self.info,
-            'uploaded_time': self.uploaded_time,
+            'uploaded_time': self.uploaded_time.strftime('%Y-%m-%d %H:%M:%S'),
             'download_count': self.download_count,
-            'downloaded': self.downloaded,
             'seeders': self.seeders,
             'leechers': self.leechers,
             'last_checked': self.last_checked,
-            'user_create': self.user_create,
+            'user_create': self.uploaded_user,
         }
         if jsondepth > 0:
             if self.categories:
@@ -85,9 +83,6 @@ class TorrentModel(db.Model):
     def find_all(cls):
         return cls.query.all()
 
-    def save_tmp(self):
-        db.session.add(self)
-
     def save_to_db(self):
         db.session.add(self)
         db.session.commit()
@@ -98,5 +93,5 @@ class TorrentModel(db.Model):
 
     def from_reqparse(self, newdata: Namespace):
         for no_pk_key in ['info_hash', 'name', 'url', 'description', 'info', 'uploaded_time', 'download_count',
-                          'downloaded', 'seeders', 'leechers', 'last_checked', 'user_create']:
+                          'downloaded', 'seeders', 'leechers', 'last_checked', 'uploaded_user']:
             _assign_if_something(self, newdata, no_pk_key)
