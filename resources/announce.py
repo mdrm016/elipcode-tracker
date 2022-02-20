@@ -41,6 +41,7 @@ class AnnounceMetadata(Resource):
     def get(self):
         announce_url = get_announce()
         if announce_url is None:
+            log.error("User not found")
             return {"error": "User not found"}, 404
 
         return {"announce": announce_url}, 200
@@ -52,12 +53,9 @@ class Announce(Resource):
 
     def get(self, passkey):
 
-        # if request.method == "POST":
-        #     return failure("Invalid request type")
-        # passkey = request.matchdict['passkey']
         user = UserModel.query.filter_by(passkey=passkey).first()
         if not user:
-            # return {'error': 'Invalid passkey'}, 400
+            print("Invalid passkey")
             return failure('Invalid passkey')
         toHex = lambda x: "".join([hex(ord(c))[2:].zfill(2) for c in x])
         parse_url = urlparse(request.url)
@@ -68,7 +66,7 @@ class Announce(Resource):
         torrent = TorrentModel.query.filter_by(info_hash=infohash).first()
 
         if not torrent:
-            # return {'error': 'Torrent not found'}, 404
+            print("Torrent not found or no registered")
             return failure("Torrent not found or no registered")
         peer = PeersModel.query.filter_by(peer_id=peer_id).first()
         left = int(query_dict['left'])
@@ -152,11 +150,12 @@ class Announce(Resource):
             torrent.last_checked = datetime.datetime.now()
             torrent.save_to_db()
 
-        peer.save_to_db()   # al guardar el peer se guarda los cambios del usuario
+        peer.save_to_db()  # al guardar el peer se guarda los cambios del usuario
+
         if compactmode:
             peers = ""
             if peer.seeding:
-                log.error("peer is seeding")
+                print("peer is seeding")
                 peer_objs = PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
                     seeding=False).order_by(func.random()).limit(50).all()
             else:
@@ -169,16 +168,23 @@ class Announce(Resource):
                 if i == peer:
                     continue
 
-                log.error(i.ip)
+                print(i.ip)
                 ipsplit = i.ip.split(".")
                 peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]),
                                      i.port).decode('latin1')
-            log.error(toHex(peers))
-            return Response(bencode(
-                {'interval': 1800, 'tracker id': 'Hermes', 'complete': torrent.seeders, 'incomplete': torrent.leechers,
-                 'peers': peers}))
+            # log.error(toHex(peers))
+            data = {
+                'interval': 1800,
+                'tracker id': 'Hermes',
+                'complete': torrent.seeders,
+                'incomplete': torrent.leechers,
+                'peers': peers
+            }
+            print(data)
+            return Response(bencode(data))
+
         if not 'no_peer_id' in query_dict:
-            log.error("NOT COMPACT MODE")
+            log.info("NOT COMPACT MODE")
             peers = list()
             if peer.seeding:
                 peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
@@ -192,10 +198,16 @@ class Announce(Resource):
                 if i == peer:
                     continue
                 peers.append({'peer id': i.peer_id, 'ip': i.ip, 'port': i.port})
-            log.error(peers)
-            return Response(bencode(
-                {'interval': 1800, 'tracker id': 'Hermes', 'complete': torrent.seeders, 'incomplete': torrent.leechers,
-                 'peers': peers}))
+            # log.info(peers)
+            data = {
+                'interval': 1800,
+                'tracker id': 'Hermes',
+                'complete': torrent.seeders,
+                'incomplete': torrent.leechers,
+                'peers': peers
+            }
+            print(data)
+            return Response(bencode(data))
 
         else:
             log.error("NO_PEER_ID")
