@@ -19,7 +19,7 @@ class Category(Resource):
     MODULE_FILES_NAME = 'category'
 
     @jwt_required
-    @check('categories_get')
+    @check('category_get')
     @swag_from('../swagger/categories/get_categories.yaml')
     def get(self, id):
         category = CategoryModel.find_by_id(id)
@@ -28,7 +28,7 @@ class Category(Resource):
         return {'message': 'No se encuentra Categories'}, 404
 
     @jwt_required
-    @check('categories_update')
+    @check('category_update')
     @swag_from('../swagger/categories/put_categories.yaml')
     def put(self, id):
         category = CategoryModel.find_by_id(id)
@@ -52,7 +52,7 @@ class Category(Resource):
 
 
     @jwt_required
-    @check('categories_delete')
+    @check('category_delete')
     @swag_from('../swagger/categories/delete_categories.yaml')
     def delete(self, id):
         category = CategoryModel.find_by_id(id)
@@ -68,14 +68,14 @@ class Category(Resource):
 class CategoryList(Resource):
 
     @jwt_required
-    @check('categories_list')
+    @check('category_list')
     @swag_from('../swagger/categories/list_categories.yaml')
     def get(self):
         query = CategoryModel.query
         return paginated_results(query)
 
     @jwt_required
-    @check('categories_insert')
+    @check('category_insert')
     @swag_from('../swagger/categories/post_categories.yaml')
     def post(self):
         data = Category.parser.parse_args()
@@ -101,7 +101,7 @@ class CategoryList(Resource):
 class CategorySearch(Resource):
 
     @jwt_required
-    @check('categories_search')
+    @check('category_search')
     @swag_from('../swagger/categories/search_categories.yaml')
     def post(self):
         query = CategoryModel.query

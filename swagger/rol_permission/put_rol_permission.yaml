@@ -1,0 +1,38 @@
+Actualiza Rol Permission
+---
+tags:
+- "rol-permission"
+responses:
+  200:
+    description: Se actualiza Rol Permission
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - name: id
+    in: path
+    required: true
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/RolPermissionPut"
+definitions:
+    RolPermissionPut:
+        type: "object"
+        properties:
+            id:
+                type: "int64"
+            rol_id:
+                type: "int64"
+            permission_id:
+                type: "int64"
+        example:
+            id: 31
+            rol_id: 41
+            permission_id: 42

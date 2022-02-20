@@ -1,3 +1,5 @@
+from resources.rol_permission import RolPermission, RolPermissionList, RolPermissionSearch
+from resources.permission import Permission, PermissionList, PermissionSearch
 from resources.torrent_category import TorrentCategory, TorrentCategoryList, TorrentCategorySearch
 import datetime
 
@@ -7,9 +9,9 @@ from resources.announce import Announce, AnnounceMetadata
 from resources.torrent import Torrents, TorrentsList, TorrentsSearch, TorrentFiles
 from resources.friendships import Friendships, FriendshipsList, FriendshipsSearch
 from resources.peers import Peers, PeersList, PeersSearch
-from resources.rol_user import Principalmembers, PrincipalmembersList, PrincipalmembersSearch
+from resources.rol_user import RolUser, RolUserList, RolUserSearch
 from resources.user import User, UserList, UserSearch, UserStatistics
-from resources.rol import Principals, PrincipalsList, PrincipalsSearch
+from resources.rol import Rol, RolList, RolSearch
 from resources.category import Category, CategoryList, CategorySearch
 from resources.torrent_file import TorrentFile, TorrentFileList, TorrentFileSearch
 import os
@@ -21,66 +23,22 @@ from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity,
     get_raw_jwt)
-from flask_restful import Api, Resource
-from utils import JSONEncoder, unique_md5, JSONDecoder
+from flask_restful import Api
+from utils import JSONEncoder, JSONDecoder
 
 permisions = [
-    'torrent_category_list',
-    'torrent_category_search',
-    'torrent_category_get',
-    'torrent_category_insert',
-    'torrent_category_update',
-    'torrent_category_delete',
+    'rol_permission_list',
+    'rol_permission_search',
+    'rol_permission_get',
+    'rol_permission_insert',
+    'rol_permission_update',
+    'rol_permission_delete',
     'torrent_file_list',
     'torrent_file_search',
     'torrent_file_get',
     'torrent_file_insert',
     'torrent_file_update',
     'torrent_file_delete',
-    'torrents_list',
-    'torrents_search',
-    'torrents_get',
-    'torrents_insert',
-    'torrents_update',
-    'torrents_delete',
-    'friendships_list',
-    'friendships_search',
-    'friendships_get',
-    'friendships_insert',
-    'friendships_update',
-    'friendships_delete',
-    'peers_list',
-    'peers_search',
-    'peers_get',
-    'peers_insert',
-    'peers_update',
-    'peers_delete',
-    'principalmembers_list',
-    'principalmembers_search',
-    'principalmembers_get',
-    'principalmembers_insert',
-    'principalmembers_update',
-    'principalmembers_delete',
-    'users_list',
-    'users_search',
-    'users_get',
-    'users_insert',
-    'users_update',
-    'users_delete',
-    'categories_list',
-    'categories_search',
-    'categories_get',
-    'categories_insert',
-    'categories_update',
-    'categories_delete',
-    'principals_list',
-    'principals_search',
-    'principals_get',
-    'principals_insert',
-    'principals_update',
-    'principals_delete',
-    'torrent_file_download',
-    'user_statistics'
 ]
 
 PREFIX_STORAGE = os.environ.get('PREFIX_STORAGE_PATH', '/media')
@@ -171,8 +129,12 @@ blacklist = set()
 # Change this to get permissions from your permission store (database, redis, cache, file, etc.)
 @jwt.user_claims_loader
 def add_claims_to_access_token(identity):
+    user = UserModel.query.filter_by(username=identity).first()
+    user_rol = user.roles.pop()
+    user_permissions = [x.name for x in user_rol.permissions]
     return {
-        'permisions': permisions
+        'rol': user_rol.name,
+        'permissions': user_permissions
     }
 
 
@@ -229,7 +191,7 @@ def register():
     if not username or not password or not email:
         return jsonify({"error": "Bad username, password or email. Please, complete the necesary fields"}), 400
 
-    user = UserModel(username=username, password=password, email=email, user_create='free',
+    user = UserModel(username=username, password=password, email=email, status='active', user_create='admin',
                      date_create=datetime.datetime.now())
     rol = RolModel.query.filter_by(name='user').first()
     if rol is None:
@@ -269,18 +231,18 @@ api.add_resource(Category, f'{PREFIX}/category/<id>')
 api.add_resource(CategoryList, f'{PREFIX}/category')
 api.add_resource(CategorySearch, f'{PREFIX}/search/category')
 
-api.add_resource(Principals, f'{PREFIX}/principals/<principal_id>')
-api.add_resource(PrincipalsList, f'{PREFIX}/principals')
-api.add_resource(PrincipalsSearch, f'{PREFIX}/search/principals')
+api.add_resource(Rol, f'{PREFIX}/rol/<id>')
+api.add_resource(RolList, f'{PREFIX}/rol')
+api.add_resource(RolSearch, f'{PREFIX}/search/rol')
 
-api.add_resource(User, f'{PREFIX}/users/<user_id>')
-api.add_resource(UserList, f'{PREFIX}/users')
-api.add_resource(UserSearch, f'{PREFIX}/search/users')
+api.add_resource(User, f'{PREFIX}/user/<id>')
+api.add_resource(UserList, f'{PREFIX}/user')
+api.add_resource(UserSearch, f'{PREFIX}/search/user')
 api.add_resource(UserStatistics, f'{PREFIX}/user/statistics')
 
-api.add_resource(Principalmembers, f'{PREFIX}/principalmembers/<principalmembership_id>')
-api.add_resource(PrincipalmembersList, f'{PREFIX}/principalmembers')
-api.add_resource(PrincipalmembersSearch, f'{PREFIX}/search/principalmembers')
+api.add_resource(RolUser, f'{PREFIX}/rol_user/<id>')
+api.add_resource(RolUserList, f'{PREFIX}/rol_user')
+api.add_resource(RolUserSearch, f'{PREFIX}/search/rol_user')
 
 api.add_resource(Peers, f'{PREFIX}/peers/<id>')
 api.add_resource(PeersList, f'{PREFIX}/peers')
@@ -306,12 +268,17 @@ api.add_resource(TorrentCategory, '/torrent_category/<id>')
 api.add_resource(TorrentCategoryList, '/torrent_category')
 api.add_resource(TorrentCategorySearch, '/search/torrent_category')
 
+api.add_resource(Permission, f'{PREFIX}/permission/<id>')
+api.add_resource(PermissionList, f'{PREFIX}/permission')
+api.add_resource(PermissionSearch, f'{PREFIX}/search/permission')
+
+api.add_resource(RolPermission, f'{PREFIX}/rol_permission/<id>')
+api.add_resource(RolPermissionList, f'{PREFIX}/rol_permission')
+api.add_resource(RolPermissionSearch, f'{PREFIX}/search/rol_permission')
+
 if __name__ == '__main__':
     db.init_app(app)
     app.run(host=os.environ.get("FLASK_HOST", default="0.0.0.0"), port=os.environ.get("FLASK_PORT", default=5000))
 # this lines are required for debugging with pycharm (although you can delete them if you want)
 else:
     db.init_app(app)
-    # with app.app_context():
-    #     db.drop_all()
-    #     db.create_all()

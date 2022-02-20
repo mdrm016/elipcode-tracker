@@ -1,0 +1,39 @@
+Lista de Permission
+---
+tags:
+  - "search"
+responses:
+  200:
+    description: Se lista Permission filtrados
+  401:
+    description: Las credenciales proveídas en los datos de login son inválidos
+  422:
+    description: El access_token no es válido. (Not enough segments, invalid utf-8 chars, etc.)
+parameters:
+  - in: header
+    name: Authorization
+    description: Access token
+    required: true
+    default: Bearer [access_token]
+  - in: query
+    name: page
+    description: Current items page
+    default: 1
+  - name: body
+    in: body
+    schema:
+      $ref: "#/definitions/PermissionSearch"
+definitions:
+    PermissionSearch:
+        type: "object"
+        properties:
+            id:
+                type: "int64"
+            name:
+                type: "string"
+            group:
+                type: "string"
+        example:
+            id: 48
+            name: Lorem ipsum dolor sit amet
+            group: Lorem ipsum dolor sit amet

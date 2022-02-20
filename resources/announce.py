@@ -37,7 +37,7 @@ def get_announce():
 class AnnounceMetadata(Resource):
 
     @jwt_required
-    @check('torrents_insert')
+    @check('announce_get')
     def get(self):
         announce_url = get_announce()
         if announce_url is None:

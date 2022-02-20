@@ -8,14 +8,14 @@ from models.rol_user import RolUserModel
 from utils import restrict, check, paginated_results
 
 
-class Principalmembers(Resource):
+class RolUser(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('d', type=int)
     parser.add_argument('rol_id', type=int)
     parser.add_argument('user_id', type=int)
 
     @jwt_required
-    @check('principalmembers_get')
+    @check('rol_user_get')
     @swag_from('../swagger/principalmembers/get_principalmembers.yaml')
     def get(self, id):
         rol_user = RolUserModel.find_by_rol_user_id(id)
@@ -24,19 +24,19 @@ class Principalmembers(Resource):
         return {'message': 'No se encuentra rol_user'}, 404
 
     @jwt_required
-    @check('principalmembers_update')
+    @check('rol_user_update')
     @swag_from('../swagger/principalmembers/put_principalmembers.yaml')
     def put(self, id):
         rol_user = RolUserModel.find_by_rol_user_id(id)
         if rol_user:
-            newdata = Principalmembers.parser.parse_args()
+            newdata = RolUser.parser.parse_args()
             rol_user.from_reqparse(newdata)
             rol_user.save_to_db()
             return rol_user.json()
         return {'message': 'No se encuentra rol_user'}, 404
 
     @jwt_required
-    @check('principalmembers_delete')
+    @check('rol_user_delete')
     @swag_from('../swagger/principalmembers/delete_principalmembers.yaml')
     def delete(self, id):
         rol_user = RolUserModel.find_by_rol_user_id(id)
@@ -46,22 +46,22 @@ class Principalmembers(Resource):
         return {'message': 'Se ha borrado rol_user'}
 
 
-class PrincipalmembersList(Resource):
+class RolUserList(Resource):
 
     @jwt_required
-    @check('principalmembers_list')
+    @check('rol_user_list')
     @swag_from('../swagger/principalmembers/list_principalmembers.yaml')
     def get(self):
         query = RolUserModel.query
         return paginated_results(query)
 
     @jwt_required
-    @check('principalmembers_insert')
+    @check('rol_user_insert')
     @swag_from('../swagger/principalmembers/post_principalmembers.yaml')
     def post(self):
-        data = Principalmembers.parser.parse_args()
+        data = RolUser.parser.parse_args()
 
-        principalmembership_id = data.get('principalmembership_id')
+        id = data.get('principalmembership_id')
 
         if id is not None and RolUserModel.find_by_rol_user_id(id):
             return {'message': "Ya existe un principalmembers con id '{}'.".format(id)}, 400
@@ -76,10 +76,10 @@ class PrincipalmembersList(Resource):
         return principalmembers.json(), 201
 
 
-class PrincipalmembersSearch(Resource):
+class RolUserSearch(Resource):
 
     @jwt_required
-    @check('principalmembers_search')
+    @check('rol_user_search')
     @swag_from('../swagger/principalmembers/search_principalmembers.yaml')
     def post(self):
         query = RolUserModel.query

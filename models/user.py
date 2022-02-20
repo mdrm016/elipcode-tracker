@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import random
 import string
@@ -9,7 +8,6 @@ from flask_sqlalchemy import xrange
 
 from db import db
 from models.friendships import FriendshipsModel
-from models.rol_user import RolUserModel
 from models.rol import RolModel
 from utils import _assign_if_something
 
@@ -23,35 +21,47 @@ class UserModel(db.Model):
     password = db.Column(db.String(300))
     email = db.Column(db.String(50), unique=True)
     passkey = db.Column(db.String(100))
+    status = db.Column(db.String(20))
     uploaded = db.Column(db.BigInteger, default=0)
     downloaded = db.Column(db.BigInteger, default=0)
     user_create = db.Column(db.String(30))
     date_create = db.Column(db.DateTime)
+    user_modifier = db.Column(db.String(30))
+    date_modifier = db.Column(db.DateTime)
 
     friendships = db.relationship(FriendshipsModel, primaryjoin=(FriendshipsModel.userone_id == id), backref='userone')
     awaiting_friendships = db.relationship(FriendshipsModel, primaryjoin=(FriendshipsModel.usertwo_id == id),
                                            backref='usertwo')
     roles = db.relationship(RolModel, secondary='user.rol_user')
 
-    def __init__(self, username, password, email, user_create, date_create):
+    def __init__(self, username, password, email, status, user_create, date_create):
         self.username = username
         self.password = hashlib.sha1((password + app.config['USER_SECRET_KEY']).encode('utf-8')).hexdigest()
         self.email = email
         self.passkey = "".join([random.choice(string.ascii_letters) for x in xrange(16)])
+        self.status = status
         self.user_create = user_create
         self.date_create = date_create
 
     def json(self, jsondepth=0):
-        return {
-            'user_id': self.id,
+        json = {
+            'id': self.id,
             'username': self.username,
             'password': self.password,
             'passkey': self.passkey,
+            'status': self.status,
             'uploaded': self.uploaded,
             'downloaded': self.downloaded,
             'user_create': self.user_create,
             'date_create': self.date_create,
+            'user_modifier': self.user_modifier,
+            'date_modifier': self.date_modifier
         }
+
+        if jsondepth > 0:
+            json['rol'] = [x.json() for x in self.roles].pop()
+
+        return json
 
     @classmethod
     def find_by_user_id(cls, id):
@@ -76,5 +86,6 @@ class UserModel(db.Model):
         db.session.commit()
 
     def from_reqparse(self, newdata: Namespace):
-        for no_pk_key in ['username', 'password', 'passkey', 'uploaded', 'downloaded', 'user_create', 'date_create']:
+        for no_pk_key in ['username', 'password', 'passkey', 'status', 'uploaded', 'downloaded', 'user_create',
+                          'date_create', 'user_modifier', 'date_modifier']:
             _assign_if_something(self, newdata, no_pk_key)

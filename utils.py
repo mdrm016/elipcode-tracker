@@ -100,7 +100,7 @@ def check(permision):
             if usuario is None:
                 return {'message': 'No tiene permisos para realizar esta acción'}, 401
             claims = get_jwt_claims()
-            if permision not in claims['permisions']:
+            if permision not in claims['permissions']:
                 return {'message': 'No tiene permisos para realizar esta acción'}, 401
             return fn(*args, **kwargs)
         return wrapper

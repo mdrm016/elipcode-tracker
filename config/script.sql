@@ -7,8 +7,9 @@
 
 create table "user".permission
 (
-    id   bigserial primary key,
-    name varchar(100) unique
+    id      bigserial primary key,
+    name    varchar(100) unique,
+    "group" varchar(50)
 );
 alter table "user".permission
     owner to postgres;
@@ -34,15 +35,18 @@ alter table "user".rol_permission
 
 create table "user".user
 (
-    id          bigserial primary key,
-    username    varchar(30) unique,
-    password    varchar(300),
-    email       varchar(50) unique,
-    passkey     varchar(100),
-    uploaded    bigint             default 0,
-    downloaded  bigint             default 0,
-    user_create varchar(30),
-    date_create timestamp not null default now()
+    id            bigserial primary key,
+    username      varchar(30) unique,
+    password      varchar(300),
+    email         varchar(50) unique,
+    passkey       varchar(100),
+    status        varchar(50),
+    uploaded      bigint             default 0,
+    downloaded    bigint             default 0,
+    user_create   varchar(30),
+    date_create   timestamp not null default now(),
+    user_modifier varchar(30),
+    date_modifier timestamp
 );
 alter table "user".user
     owner to postgres;
@@ -136,10 +140,10 @@ create table torrent.peers
     ip               varchar,
     port             integer,
     active           boolean,
-    uploaded         bigint default 0,
-    downloaded       bigint default 0,
-    uploaded_total   bigint default 0,
-    downloaded_total bigint default 0,
+    uploaded         bigint  default 0,
+    downloaded       bigint  default 0,
+    uploaded_total   bigint  default 0,
+    downloaded_total bigint  default 0,
     seeding          boolean default false,
     constraint peers_torrent_id_fkey FOREIGN KEY (torrent_id) references torrent.torrent (id),
     constraint peers_user_id_fkey FOREIGN KEY (user_id) references "user".user (id)

@@ -1,0 +1,2 @@
+--Dump data database
+pg_dump -h localhost -p 5432 -U postgres --column-inserts --data-only -d elipcode-tracker >> config/dump_data.sql

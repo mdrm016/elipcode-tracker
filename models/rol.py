@@ -1,6 +1,7 @@
 from flask_restful.reqparse import Namespace
 
 from db import db
+from models.permission import PermissionModel
 from utils import _assign_if_something
 
 
@@ -11,14 +12,21 @@ class RolModel(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     name = db.Column(db.String(50), unique=True)
 
+    permissions = db.relationship(PermissionModel, secondary='user.rol_permission')
+
     def __init__(self, name=None):
         self.name = name
 
     def json(self, jsondepth=0):
-        return {
+        json = {
             'id': self.id,
             'name': self.name,
         }
+
+        if jsondepth > 0:
+            json['permissions'] = [x.json() for x in self.permissions] if self.permissions else []
+
+        return json
 
     @classmethod
     def find_by_rol_id(cls, id):

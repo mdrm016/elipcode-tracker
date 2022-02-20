@@ -9,6 +9,7 @@ from flask import request, json, current_app, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_restful import Resource, reqparse
 from pytz import unicode
+from sqlalchemy import or_
 from torrentool.torrent import Torrent
 
 from file_utils import save_file, cheksum_file, delete_files_by_hash_datetime, delete_file
@@ -39,7 +40,7 @@ class Torrents(Resource):
     parser.add_argument('uploaded_user', type=str)
 
     @jwt_required
-    @check('torrents_get')
+    @check('torrent_get')
     @swag_from('../swagger/torrents/get_torrents.yaml')
     def get(self, id):
         torrent = TorrentModel.find_by_torrent_id(id)
@@ -48,7 +49,7 @@ class Torrents(Resource):
         return {'message': 'Torrent not found'}, 404
 
     @jwt_required
-    @check('torrents_update')
+    @check('torrent_update')
     @swag_from('../swagger/torrents/put_torrents.yaml')
     def put(self, id):
         torrent = TorrentModel.find_by_torrent_id(id)
@@ -60,7 +61,7 @@ class Torrents(Resource):
         return {'message': 'No se encuentra Torrent'}, 404
 
     @jwt_required
-    @check('torrents_delete')
+    @check('torrent_delete')
     @swag_from('../swagger/torrents/delete_torrents.yaml')
     def delete(self, id):
         torrent = TorrentModel.find_by_torrent_id(id)
@@ -73,14 +74,14 @@ class Torrents(Resource):
 class TorrentsList(Resource):
 
     @jwt_required
-    @check('torrents_list')
+    @check('torrent_list')
     @swag_from('../swagger/torrents/list_torrents.yaml')
     def get(self):
         query = TorrentModel.query
         return paginated_results(query)
 
     @jwt_required
-    @check('torrents_insert')
+    @check('torrent_insert')
     @swag_from('../swagger/torrents/post_torrents.yaml')
     def post(self):
         data = Torrents.parser.parse_args()
@@ -168,7 +169,7 @@ class TorrentsList(Resource):
 class TorrentsSearch(Resource):
 
     @jwt_required
-    @check('torrents_search')
+    @check('torrent_search')
     @swag_from('../swagger/torrents/search_torrents.yaml')
     def post(self):
         query = TorrentModel.query
@@ -179,9 +180,19 @@ class TorrentsSearch(Resource):
             query = restrict(query, filters, 'name', lambda x: TorrentModel.name.contains(x))
             query = restrict(query, filters, 'description', lambda x: TorrentModel.description.contains(x))
             query = restrict(query, filters, 'download_count', lambda x: TorrentModel.download_count == x)
-            query = restrict(query, filters, 'seeders', lambda x: TorrentModel.seeders == x)
+            query = restrict(query, filters, 'seeders', lambda x: TorrentModel.seeders > 0)
             query = restrict(query, filters, 'leechers', lambda x: TorrentModel.leechers == x)
             query = restrict(query, filters, 'uploaded_user', lambda x: TorrentModel.uploaded_user == x)
+
+            if 'status' in filters:
+                if filters['status'] == 'visible':
+                    query = restrict(query, filters, 'status', lambda x: TorrentModel.seeders > 0)
+                elif filters['status'] == 'dead':
+                    query = restrict(query, filters, 'status', lambda x: TorrentModel.seeders == 0)
+
+            if 'filter' in filters and filters['filter']:
+                search = f'%{filters["filter"]}%'
+                query = query.filter(or_(TorrentModel.name.ilike(search), TorrentModel.description.ilike(search)))
 
         # order section
         query = query.order_by(TorrentModel.uploaded_time.desc())
@@ -192,7 +203,7 @@ class TorrentsSearch(Resource):
 class TorrentFiles(Resource):
 
     @jwt_required
-    # @check('torrent_file_download')
+    @check('torrent_file_download')
     def get(self, id):
         torrent = TorrentModel.find_by_torrent_id(id)
 
@@ -202,7 +213,7 @@ class TorrentFiles(Resource):
         torrent_file = next(x for x in torrent.files if x.module == 'TORRENT')
         new_filename = "{} - {}".format(current_app.config['TORRENT_FILES_PREFIX'], torrent_file.file_name)
 
-        # TODO: Set the correct announce by user
+        # Set the correct announce by user
         tmp_path = set_torrent_announce(torrent_file.path, get_announce())
 
         if torrent_file:
