@@ -81,7 +81,7 @@ def env_config(name, default):
 PREFIX = os.environ.get('PREFIX_PATH', '/api')
 
 # Database config
-env_config('SQLALCHEMY_DATABASE_URI', 'postgresql://postgres:postgres@localhost:5432/elipcode-tracker')
+env_config('SQLALCHEMY_DATABASE_URI', 'postgresql://postgres:postgres@localhost:5432/bm_tracker')
 # app.config['SQLALCHEMY_BINDS'] = {
 #     'anotherdb':        'postgresql://postgres:postgres@localhost:5432/anotherdb'
 # }
@@ -112,7 +112,7 @@ app.config['ANNOUNCE_DOMAIN'] = 'http://192.168.100.2:5000'
 app.config['USER_SECRET_KEY'] = 'e4cba2d5b70f412896117265'
 app.config['UPLOAD_TMP_FOLDER'] = 'static/tmp'
 app.config['UPLOAD_FOLDER'] = 'static/storage'
-app.config['TORRENT_FILES_PREFIX'] = '[elipcode-tracker.net]'
+app.config['TORRENT_FILES_PREFIX'] = '[BodyMuscle-tracker.net]'
 app.config['SYSTEM_FILES_FOLDER'] = 'static/system'
 
 # Setup the Flask-JWT-Extended extension

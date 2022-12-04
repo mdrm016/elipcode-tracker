@@ -1,4 +1,4 @@
--- CREATE DATABASE "elipcode-tracker";
+-- CREATE DATABASE "bm_tracker";
 
 -- CREATE SCHEMA "user";
 -- CREATE SCHEMA torrent;

@@ -120,6 +120,7 @@ class TorrentsList(Resource):
         # info = bencodepy.bencode(bencodepy.bdecode(open(torrent_file.path, 'rb').read())[b'info'])
         # info_hash = hashlib.sha1(info).hexdigest()
         torrent.info_hash = info_hash
+        print('INFOHASH: %s', info_hash)
         log.info('INFOHASH: %s', info_hash)
 
         # Save torrent info

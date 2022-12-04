@@ -1,4 +1,7 @@
+import cgi
 import datetime
+from binascii import b2a_hex
+from urllib import parse
 from urllib.parse import urlparse, parse_qsl
 
 from flask import request, Response, current_app
@@ -51,18 +54,36 @@ class Announce(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('passkey', type=str)
 
+    def toHex(self, x):
+        arr = []
+        for c in x:
+            try:
+                coded = c.encode('latin_1')
+                a = ord(c)
+                b = hex(a)
+                d = b[2:]
+                e = d.zfill(2)
+            except UnicodeEncodeError:
+                byteString = c.encode('utf-8')
+                e = ''.join('{:02x}'.format(x) for x in byteString)
+            arr.append(e)
+            # if prt:
+            #     print(f'{c} -> {e}')
+        return "".join(arr)
+
     def get(self, passkey):
 
         user = UserModel.query.filter_by(passkey=passkey).first()
         if not user:
             print("Invalid passkey")
             return failure('Invalid passkey')
-        toHex = lambda x: "".join([hex(ord(c))[2:].zfill(2) for c in x])
+        # toHex = lambda x: "".join([hex(ord(c))[2:].zfill(2) for c in x])
+        # toHex = lambda x: "".join(["{:02X}".format(ord(c)) for c in x])
         parse_url = urlparse(request.url)
         query_dict = dict(parse_qsl(parse_url.query, encoding='latin_1'))
 
-        infohash = toHex(query_dict['info_hash'])
-        peer_id = toHex(query_dict['peer_id'])
+        infohash = self.toHex(query_dict['info_hash'])
+        peer_id = self.toHex(query_dict['peer_id'])
         torrent = TorrentModel.query.filter_by(info_hash=infohash).first()
 
         if not torrent:
@@ -153,7 +174,7 @@ class Announce(Resource):
         peer.save_to_db()  # al guardar el peer se guarda los cambios del usuario
 
         if compactmode:
-            peers = ""
+            peers = b""
             if peer.seeding:
                 print("peer is seeding")
                 peer_objs = PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
@@ -163,19 +184,18 @@ class Announce(Resource):
                     seeding=True).order_by(func.random()).limit(25).all() + \
                             PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
                                 seeding=False).order_by(func.random()).limit(25).all()
-                log.error(peer_objs)
             for i in peer_objs:
                 if i == peer:
                     continue
 
                 print(i.ip)
                 ipsplit = i.ip.split(".")
-                peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]),
-                                     i.port).decode('latin1')
+                peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]), i.port)
             # log.error(toHex(peers))
+            print(self.toHex(peers.decode('latin_1')))
             data = {
-                'interval': 1800,
-                'tracker id': 'Hermes',
+                'interval': 60,
+                'tracker id': 'BodyMuscle',
                 'complete': torrent.seeders,
                 'incomplete': torrent.leechers,
                 'peers': peers
