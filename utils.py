@@ -169,7 +169,7 @@ def check_request_sanity(values):
         return 'compact must be 0 or 1'
     if not values['numwant'] >= 0:
         return 'invalid number of peers requested'
-    if values['event'] not in ('started', 'completed', 'stopped', 'update'):
+    if 'event' in values and values['event'] not in ('started', 'completed', 'stopped', 'update'):
         return 'invalid event'
     if values['peer_id'] is None:
         return 'peer id required'
