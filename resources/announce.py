@@ -1,9 +1,7 @@
-import cgi
 import datetime
-from binascii import b2a_hex
-from urllib import parse
 from urllib.parse import urlparse, parse_qsl
 
+import ipaddr
 from flask import request, Response, current_app
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource, reqparse
@@ -18,7 +16,7 @@ from models.user import UserModel
 import struct
 import logging
 
-from utils import check
+from utils import check, to_hex, tracker_error, parse_request, get_interval
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +36,6 @@ def get_announce():
 
 
 class AnnounceMetadata(Resource):
-
     @jwt_required
     @check('announce_get')
     def get(self):
@@ -54,82 +51,70 @@ class Announce(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('passkey', type=str)
 
-    def toHex(self, x):
-        arr = []
-        for c in x:
-            try:
-                coded = c.encode('latin_1')
-                a = ord(c)
-                b = hex(a)
-                d = b[2:]
-                e = d.zfill(2)
-            except UnicodeEncodeError:
-                byteString = c.encode('utf-8')
-                e = ''.join('{:02x}'.format(x) for x in byteString)
-            arr.append(e)
-            # if prt:
-            #     print(f'{c} -> {e}')
-        return "".join(arr)
-
     def get(self, passkey):
 
+        # Parse the request and return any errors
+        values, response = parse_request(request)
+        if response is not None:
+            return tracker_error(response)
+
+        # Authenticate the user
         user = UserModel.query.filter_by(passkey=passkey).first()
         if not user:
             print("Invalid passkey")
             return failure('Invalid passkey')
-        # toHex = lambda x: "".join([hex(ord(c))[2:].zfill(2) for c in x])
-        # toHex = lambda x: "".join(["{:02X}".format(ord(c)) for c in x])
-        parse_url = urlparse(request.url)
-        query_dict = dict(parse_qsl(parse_url.query, encoding='latin_1'))
 
-        infohash = self.toHex(query_dict['info_hash'])
-        peer_id = self.toHex(query_dict['peer_id'])
-        torrent = TorrentModel.query.filter_by(info_hash=infohash).first()
-
+        # Authenticate the info_hash
+        torrent = TorrentModel.query.filter_by(info_hash=values['info_hash']).first()
         if not torrent:
             print("Torrent not found or no registered")
             return failure("Torrent not found or no registered")
-        peer = PeersModel.query.filter_by(peer_id=peer_id).first()
-        left = int(query_dict['left'])
+
+        # Se obtiene el peer que realiza la peticion
+        peer = PeersModel.query.filter_by(peer_id=values['peer_id']).first()
+        left = values['left']
         if not peer:
             peer = PeersModel()
             peer.user = user
             peer.torrent = torrent
-            peer.peer_id = peer_id
+            peer.peer_id = values['peer_id']
             peer.uploaded = 0
             peer.downloaded = 0
             peer.uploaded_total = 0
             peer.downloaded_total = 0
             peer.seeding = False
 
+        # Se inicializa los cambios de la peticion
         diff_uploaded = 0
-        if 'uploaded' in query_dict:
-            diff_uploaded = int(query_dict['uploaded']) - peer.uploaded
+        if values['uploaded']:
+            diff_uploaded = values['uploaded'] - peer.uploaded
         diff_downloaded = 0
-        if 'downloaded' in query_dict:
-            diff_downloaded = int(query_dict['downloaded']) - peer.downloaded
+        if values['downloaded']:
+            diff_downloaded = values['downloaded'] - peer.downloaded
         compactmode = False
-        if 'compact' in query_dict and query_dict['compact'] == '1':
+        if values['compact'] == 1:
             compactmode = True
-        peer.ip = request.environ['REMOTE_ADDR']
-        peer.port = int(query_dict['port'])
+        peer.ip = values['ip']
+        peer.port = values['port']
 
+        # Se evalua si el peer es seeder o leecher
         if left == 0:
             peer.seeding = True
             torrent.save_to_db()
         else:
             peer.seeding = False
 
-        if 'event' in query_dict:
-            event = query_dict['event']
+        # Dependiendo del evento se realiza cambios al usuario, torrent y peer
+        if 'event' in values:
+            event = values['event']
             if event == 'started':
                 peer.active = True
-                peer.uploaded = int(query_dict['uploaded'])
-                peer.downloaded = int(query_dict['downloaded'])
-                peer.uploaded_total += int(query_dict['uploaded'])
-                peer.downloaded_total += int(query_dict['downloaded'])
-                user.uploaded += int(query_dict['uploaded'])
-                user.downloaded += int(query_dict['downloaded'])
+                peer.uploaded = values['uploaded']
+                peer.downloaded = values['downloaded']
+                peer.uploaded_total += values['uploaded']
+                peer.downloaded_total += values['downloaded']
+                user.uploaded += values['uploaded']
+                user.downloaded += values['downloaded']
             elif event == 'stopped':
                 peer.active = False
                 peer.uploaded = 0
@@ -142,25 +127,25 @@ class Announce(Resource):
                 peer.seeding = True
                 torrent.download_count += 1
                 peer.active = True
-                peer.uploaded = int(query_dict['uploaded'])
-                peer.downloaded = int(query_dict['downloaded'])
+                peer.uploaded = values['uploaded']
+                peer.downloaded = values['downloaded']
                 peer.uploaded_total += diff_uploaded
                 peer.downloaded_total += diff_downloaded
                 user.uploaded += diff_uploaded
                 user.downloaded += diff_downloaded
         else:
-            peer.uploaded = int(query_dict['uploaded'])
-            peer.downloaded = int(query_dict['downloaded'])
+            peer.uploaded = values['uploaded']
+            peer.downloaded = values['downloaded']
             peer.uploaded_total += diff_uploaded
             peer.downloaded_total += diff_downloaded
             user.uploaded += diff_uploaded
             user.downloaded += diff_downloaded
 
-        if torrent.last_checked is None or (datetime.datetime.now() - torrent.last_checked).seconds >= 60 * 10:
-            peer_objs = torrent.peers
+        # Se habilita seeder despues de 20 segundos y se actualiza los valores del torrent
+        if torrent.last_checked is None or (datetime.datetime.now() - torrent.last_checked).seconds >= 20:
             seeders = 0
             leechers = 0
-            for i in peer_objs:
+            for i in torrent.peers:
                 if i.active:
                     if i.seeding:
                         seeders += 1
@@ -171,63 +156,84 @@ class Announce(Resource):
             torrent.last_checked = datetime.datetime.now()
             torrent.save_to_db()
 
-        peer.save_to_db()  # al guardar el peer se guarda los cambios del usuario
+        # Al guardar el peer con los valores relacionados al modelo
+        peer.save_to_db()
 
         if compactmode:
-            peers = b""
             if peer.seeding:
-                print("peer is seeding")
+                print(f"Peer is seed: {peer.peer_id}")
+                # Si el peer esta sembrando, se le pasa hasta 50 sangijuelas
                 peer_objs = PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
                     seeding=False).order_by(func.random()).limit(50).all()
             else:
+                print(f"Peer is leecher: {peer.peer_id}")
+                # Si el peer esta requiriendo el torrent, se le pasa hasta 50 sembradores y hasta 50 sangijuejas
                 peer_objs = PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
-                    seeding=True).order_by(func.random()).limit(25).all() + \
-                            PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
-                                seeding=False).order_by(func.random()).limit(25).all()
-            for i in peer_objs:
-                if i == peer:
-                    continue
+                    seeding=True).order_by(func.random()).limit(25).all()
+                peer_objs += PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
+                    seeding=False).order_by(func.random()).limit(25).all()
 
-                print(i.ip)
-                ipsplit = i.ip.split(".")
-                peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]), i.port)
-            # log.error(toHex(peers))
-            print(self.toHex(peers.decode('latin_1')))
+            # Se envia la cantidad de peers solicitada por el cliente
+            peer_objs = peer_objs[:values['numwant']]
+
+            # Se prepara concatenacion de peers en COMPACT MODE
+            print("COMPACT MODE")
+            peers = b""
+            for i in peer_objs:
+                if i != peer:   # No enviar el peer que realiza la peticion
+                    print(f'Peer to response --> {i.ip}:{i.port}')
+                    ipsplit = i.ip.split(".")
+                    peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]), i.port)
+
+            # Alternativa
+            peers2 = ''.join("%s%s%s" % (ipaddr.IPAddress(i.ip).packed, chr(i.port//256), chr(i.port%256)) for i in peer_objs)
+
+            # Se prepara objeto a responder
             data = {
-                'interval': 60,
-                'tracker id': 'BodyMuscle',
+                'interval': 60,  # get_interval(peer),
+                'tracker id': current_app.config['TRACKER_ID'],
                 'complete': torrent.seeders,
                 'incomplete': torrent.leechers,
                 'peers': peers
             }
-            print(data)
+
+            print(f"Data to response: {data}")
             return Response(bencode(data))
 
-        if not 'no_peer_id' in query_dict:
+        if values['no_peer_id'] == 0:
+            if peer.seeding:
+                print(f"Peer is seed: {peer.peer_id}")
+                peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
+                    seeding=False).order_by(func.random()).limit(50).all()
+            else:
+                print(f"Peer is leecher: {peer.peer_id}")
+                peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
+                    seeding=True).order_by(func.random()).limit(25).all()
+                peer_objs += PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
+                    seeding=False).order_by(func.random()).limit(25).all()
+
+            # Se envia la cantidad de peers solicitada por el cliente
+            peer_objs = peer_objs[:values['numwant']]
+
+            print("NOT COMPACT MODE")
             log.info("NOT COMPACT MODE")
             peers = list()
-            if peer.seeding:
-                peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
-                    seeding=False).order_by(func.random()).limit(50).all()
-            else:
-                peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
-                    seeding=True).order_by(func.random()).limit(25).all() + PeersModel.query.filter_by(
-                    active=True).filter_by(torrent=torrent).filter_by(seeding=False).order_by(func.random()).limit(
-                    25).all()
             for i in peer_objs:
-                if i == peer:
-                    continue
-                peers.append({'peer id': i.peer_id, 'ip': i.ip, 'port': i.port})
-            # log.info(peers)
+                if i != peer:   # No enviar el peer que realiza la peticion
+                    print(f'Peer to response --> {i.ip}:{i.port}')
+                    peers.append({'peer id': i.peer_id, 'ip': i.ip, 'port': i.port})
+
+            # Se prepara objeto a responder
             data = {
-                'interval': 1800,
-                'tracker id': 'Hermes',
+                'interval': 60,  # get_interval(peer),
+                'tracker id': current_app.config['TRACKER_ID'],
                 'complete': torrent.seeders,
                 'incomplete': torrent.leechers,
                 'peers': peers
             }
+
             print(data)
             return Response(bencode(data))
-
         else:
+            print("NO_PEER_ID")
             log.error("NO_PEER_ID")

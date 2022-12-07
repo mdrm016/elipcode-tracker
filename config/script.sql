@@ -1,7 +1,7 @@
 -- CREATE DATABASE "bm_tracker";
 
--- CREATE SCHEMA "user";
--- CREATE SCHEMA torrent;
+CREATE SCHEMA "user";
+CREATE SCHEMA torrent;
 
 ---------------------------------------------------------------------------------------------------------
 

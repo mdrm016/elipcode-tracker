@@ -1,5 +1,6 @@
 from resources.rol_permission import RolPermission, RolPermissionList, RolPermissionSearch
 from resources.permission import Permission, PermissionList, PermissionSearch
+from resources.scrape import Scrape
 from resources.torrent_category import TorrentCategory, TorrentCategoryList, TorrentCategorySearch
 import datetime
 
@@ -108,6 +109,7 @@ def after_request(response):
 
 
 # Tracker enviroment variables
+app.config['TRACKER_ID'] = 'Elipcode'
 app.config['ANNOUNCE_DOMAIN'] = 'http://192.168.100.2:5000'
 app.config['USER_SECRET_KEY'] = 'e4cba2d5b70f412896117265'
 app.config['UPLOAD_TMP_FOLDER'] = 'static/tmp'
@@ -258,6 +260,7 @@ api.add_resource(TorrentsSearch, f'{PREFIX}/search/torrents')
 api.add_resource(TorrentFiles, f'{PREFIX}/torrents/get_torrent_file/<id>')
 
 api.add_resource(Announce, '/<passkey>/announce')
+api.add_resource(Scrape, '/<passkey>/scrape')
 api.add_resource(AnnounceMetadata, f'{PREFIX}/get_announce')
 
 api.add_resource(TorrentFile, '/torrent_file/<id>')

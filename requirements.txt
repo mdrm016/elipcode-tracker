@@ -7,6 +7,7 @@ Flask-Cors==3.0.7
 Flask-JWT-Extended==3.13.1
 Flask-RESTful==0.3.6
 Flask-SQLAlchemy==2.4.4
+ipaddr==2.2.0
 itsdangerous==1.1.0
 Jinja2==2.11.2
 jsonschema==3.2.0
