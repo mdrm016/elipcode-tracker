@@ -1,13 +1,13 @@
 import datetime
 import sys
-from urllib.parse import urlparse, parse_qsl
+from ipaddress import ip_address
 
+import bencode
 import ipaddr
-from flask import request, Response, current_app
+from flask import request, Response, current_app, make_response
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource, reqparse
 
-from bencode import bencode
 from sqlalchemy.sql.expression import func
 
 from models.peers import PeersModel
@@ -17,7 +17,7 @@ from models.user import UserModel
 import struct
 import logging
 
-from utils import check, to_hex, tracker_error, parse_request, get_interval
+from utils import check, tracker_error, parse_request
 
 log = logging.getLogger(__name__)
 
@@ -187,7 +187,8 @@ class Announce(Resource):
                     peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]), i.port)
 
             # Alternativa
-            peers2 = ''.join("%s%s%s" % (ipaddr.IPAddress(i.ip).packed, chr(i.port//256), chr(i.port%256)) for i in peer_objs)
+            peers2 = b"".join(ip_address(p.ip).packed + p.port.to_bytes(2, "big") for p in peer_objs)
+            print("peers codification", peers, peers2, file=sys.stdout)
 
             # Se prepara objeto a responder
             data = {
@@ -195,11 +196,13 @@ class Announce(Resource):
                 'tracker id': current_app.config['TRACKER_ID'],
                 'complete': torrent.seeders,
                 'incomplete': torrent.leechers,
-                'peers': peers
+                'peers': peers2
             }
 
             print(f"Data to response: {data}", file=sys.stdout)
-            return Response(bencode(data))
+            response = make_response(bencode.bencode(data), 200)
+            response.mimetype = "text/plain"
+            return response
 
         if values['no_peer_id'] == 0:
             if peer.seeding:
@@ -234,7 +237,9 @@ class Announce(Resource):
             }
 
             print(data, file=sys.stdout)
-            return Response(bencode(data))
+            response = make_response(bencode.bencode(data), 200)
+            response.mimetype = "text/plain"
+            return response
         else:
             print("NO_PEER_ID", file=sys.stdout)
             log.error("NO_PEER_ID")
