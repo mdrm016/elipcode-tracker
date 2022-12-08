@@ -188,8 +188,9 @@ def parse_request(request):
     # Get the interesting values from the request
     values['info_hash'] = to_hex(query_dict['info_hash'])
     values['peer_id'] = to_hex(query_dict['peer_id'])
+    print("IPs -->", request.access_route)
     if request.headers.getlist("X-Forwarded-For"):
-        print("X-Forwarded-For")
+        print("X-Forwarded-For", request.headers.getlist("X-Forwarded-For"))
         values['ip'] = request.headers.getlist("X-Forwarded-For")[0]
     else:
         values['ip'] = request.remote_addr
