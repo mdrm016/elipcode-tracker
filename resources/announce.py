@@ -1,4 +1,5 @@
 import datetime
+import sys
 from urllib.parse import urlparse, parse_qsl
 
 import ipaddr
@@ -61,13 +62,13 @@ class Announce(Resource):
         # Authenticate the user
         user = UserModel.query.filter_by(passkey=passkey).first()
         if not user:
-            print("Invalid passkey")
+            print("Invalid passkey", file=sys.stdout)
             return failure('Invalid passkey')
 
         # Authenticate the info_hash
         torrent = TorrentModel.query.filter_by(info_hash=values['info_hash']).first()
         if not torrent:
-            print("Torrent not found or no registered")
+            print("Torrent not found or no registered", file=sys.stdout)
             return failure("Torrent not found or no registered")
 
         # Se obtiene el peer que realiza la peticion
@@ -161,12 +162,12 @@ class Announce(Resource):
 
         if compactmode:
             if peer.seeding:
-                print(f"Peer is seed: {peer.peer_id}")
+                print(f"Peer is seed: {peer.peer_id}", file=sys.stdout)
                 # Si el peer esta sembrando, se le pasa hasta 50 sangijuelas
                 peer_objs = PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
                     seeding=False).order_by(func.random()).limit(50).all()
             else:
-                print(f"Peer is leecher: {peer.peer_id}")
+                print(f"Peer is leecher: {peer.peer_id}", file=sys.stdout)
                 # Si el peer esta requiriendo el torrent, se le pasa hasta 50 sembradores y hasta 50 sangijuejas
                 peer_objs = PeersModel.query.filter_by(torrent=torrent).filter_by(active=True).filter_by(
                     seeding=True).order_by(func.random()).limit(25).all()
@@ -177,11 +178,11 @@ class Announce(Resource):
             peer_objs = peer_objs[:values['numwant']]
 
             # Se prepara concatenacion de peers en COMPACT MODE
-            print("COMPACT MODE")
+            print("COMPACT MODE", file=sys.stdout)
             peers = b""
             for i in peer_objs:
                 if i != peer:   # No enviar el peer que realiza la peticion
-                    print(f'Peer to response --> {i.ip}:{i.port}')
+                    print(f'Peer to response --> {i.ip}:{i.port}', file=sys.stdout)
                     ipsplit = i.ip.split(".")
                     peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]), i.port)
 
@@ -197,16 +198,16 @@ class Announce(Resource):
                 'peers': peers
             }
 
-            print(f"Data to response: {data}")
+            print(f"Data to response: {data}", file=sys.stdout)
             return Response(bencode(data))
 
         if values['no_peer_id'] == 0:
             if peer.seeding:
-                print(f"Peer is seed: {peer.peer_id}")
+                print(f"Peer is seed: {peer.peer_id}", file=sys.stdout)
                 peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
                     seeding=False).order_by(func.random()).limit(50).all()
             else:
-                print(f"Peer is leecher: {peer.peer_id}")
+                print(f"Peer is leecher: {peer.peer_id}", file=sys.stdout)
                 peer_objs = PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
                     seeding=True).order_by(func.random()).limit(25).all()
                 peer_objs += PeersModel.query.filter_by(active=True).filter_by(torrent=torrent).filter_by(
@@ -215,12 +216,12 @@ class Announce(Resource):
             # Se envia la cantidad de peers solicitada por el cliente
             peer_objs = peer_objs[:values['numwant']]
 
-            print("NOT COMPACT MODE")
+            print("NOT COMPACT MODE", file=sys.stdout)
             log.info("NOT COMPACT MODE")
             peers = list()
             for i in peer_objs:
                 if i != peer:   # No enviar el peer que realiza la peticion
-                    print(f'Peer to response --> {i.ip}:{i.port}')
+                    print(f'Peer to response --> {i.ip}:{i.port}', file=sys.stdout)
                     peers.append({'peer id': i.peer_id, 'ip': i.ip, 'port': i.port})
 
             # Se prepara objeto a responder
@@ -232,8 +233,8 @@ class Announce(Resource):
                 'peers': peers
             }
 
-            print(data)
+            print(data, file=sys.stdout)
             return Response(bencode(data))
         else:
-            print("NO_PEER_ID")
+            print("NO_PEER_ID", file=sys.stdout)
             log.error("NO_PEER_ID")
