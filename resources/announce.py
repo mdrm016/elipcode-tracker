@@ -191,10 +191,11 @@ class Announce(Resource):
             print('ALTERNATIVA', file=sys.stdout)
             peers2 = b""
             for p in peer_objs:
-                print(f'Peer to response --> {p.ip}:{p.port}', file=sys.stdout)
-                print('ip', ip_address(p.ip).packed, file=sys.stdout)
-                print('port', p.port.to_bytes(2, "big"), file=sys.stdout)
-                peers2 += ip_address(p.ip).packed + p.port.to_bytes(2, "big")
+                if p != peer:
+                    print(f'Peer to response --> {p.ip}:{p.port}', file=sys.stdout)
+                    print('ip', ip_address(p.ip).packed, file=sys.stdout)
+                    print('port', p.port.to_bytes(2, "big"), file=sys.stdout)
+                    peers2 += ip_address(p.ip).packed + p.port.to_bytes(2, "big")
 
             print("peers codification", peers, peers2, file=sys.stdout)
 
