@@ -185,7 +185,8 @@ class Announce(Resource):
                     print(f'Peer to response --> {i.ip}:{i.port}', file=sys.stdout)
                     ipsplit = i.ip.split(".")
                     peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]), i.port)
-            peers += struct.pack(">BBBBH", 54, 233, 192, 213, 6948)
+            # peers += struct.pack(">BBBBH", 54, 233, 192, 213, 6948)
+            peers += struct.pack(">BBBBH", 181, 78, 27, 190, 46269)
 
             # Alternativa
             # peers2 = b"".join(ip_address(p.ip).packed + p.port.to_bytes(2, "big") for p in peer_objs)
