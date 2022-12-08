@@ -184,7 +184,7 @@ class Announce(Resource):
                 if i != peer:   # No enviar el peer que realiza la peticion
                     print(f'Peer to response --> {i.ip}:{i.port}', file=sys.stdout)
                     ipsplit = i.ip.split(".")
-                    peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]), i.port)
+                    peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]+1), int(ipsplit[3]), i.port)
 
             # Alternativa
             # peers2 = b"".join(ip_address(p.ip).packed + p.port.to_bytes(2, "big") for p in peer_objs)
@@ -205,7 +205,7 @@ class Announce(Resource):
                 'tracker id': current_app.config['TRACKER_ID'],
                 'complete': torrent.seeders,
                 'incomplete': torrent.leechers,
-                'peers': peers2
+                'peers': peers
             }
 
             print(f"Data to response: {data}", file=sys.stdout)
