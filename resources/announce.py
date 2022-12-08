@@ -187,7 +187,15 @@ class Announce(Resource):
                     peers += struct.pack(">BBBBH", int(ipsplit[0]), int(ipsplit[1]), int(ipsplit[2]), int(ipsplit[3]), i.port)
 
             # Alternativa
-            peers2 = b"".join(ip_address(p.ip).packed + p.port.to_bytes(2, "big") for p in peer_objs)
+            # peers2 = b"".join(ip_address(p.ip).packed + p.port.to_bytes(2, "big") for p in peer_objs)
+            print('ALTERNATIVA', file=sys.stdout)
+            peers2 = b""
+            for p in peer_objs:
+                print(f'Peer to response --> {p.ip}:{p.port}', file=sys.stdout)
+                print('ip', ip_address(p.ip).packed, file=sys.stdout)
+                print('port', p.port.to_bytes(2, "big"), file=sys.stdout)
+                peers2 += ip_address(p.ip).packed + p.port.to_bytes(2, "big")
+
             print("peers codification", peers, peers2, file=sys.stdout)
 
             # Se prepara objeto a responder
